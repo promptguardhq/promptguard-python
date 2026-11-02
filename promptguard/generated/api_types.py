@@ -55,31 +55,6 @@ class AgentPoliciesResponse(TypedDict):
     total: int
 
 
-class AgentRegisterRequest(TypedDict, total=False):
-    """Request to register a new agent identity."""
-
-    agent_name: str
-    allowed_tools: list[str] | Any
-
-
-class AgentRegisterResponse(TypedDict):
-    """Response from agent registration — secret is shown only once."""
-
-    agent_id: str
-    agent_name: str
-    agent_secret: str
-    credential_prefix: str
-
-
-class AgentRotateResponse(TypedDict):
-    """Response from credential rotation."""
-
-    agent_id: str
-    new_secret: str
-    credential_prefix: str
-    old_credential_revoked: bool
-
-
 class AgentSecurityHealthResponse(TypedDict):
     status: str
     validator_status: str
@@ -206,6 +181,57 @@ class AppliedThreshold(TypedDict):
     block: float
     # The score compared with the thresholds: the weighted score where the detector reports one, otherwise its confidence.
     score: float
+
+
+class AuditEventRecord(TypedDict):
+    """One entry of an Organization's audit trail, in the SIEM event contract (schema_version 1): what a person, a key or the system did there."""
+
+    schema_version: str
+    # `audit_event`.
+    event: str
+    event_id: str
+    # When it happened, ISO 8601 with offset.
+    timestamp: str
+    organization_id: str | Any
+    organization_name: str | Any
+    # Null for an action on the whole organization.
+    project_id: str | Any
+    # The project's name.
+    project: str | Any
+    # `authentication`, `authorization`, `data_access`, `data_modification`, `configuration`, `security`, `system` or `compliance`.
+    category: str
+    # What was done, such as `member_role_changed`.
+    action: str
+    # `debug`, `info`, `warning`, `error` or `critical`.
+    severity: str
+    # `success`, `failure`, `denied` or `error`.
+    outcome: str
+    # `user`, `api_key`, `service` or `system`.
+    actor_type: str
+    # Who did it: a user id, or null for the system.
+    actor_id: str | Any
+    actor_ip: str | Any
+    resource_type: str | Any
+    resource_id: str | Any
+    description: str
+    details: dict[str, Any]
+    # The entry's seal on its organization's tamper-evident chain.
+    integrity_hash: str | Any
+    # Opens the audit log in its Organization.
+    dashboard_url: str
+    text: str
+
+
+class AuditExportPage(TypedDict):
+    """One page of an Organization's audit trail, oldest first."""
+
+    organization_id: str
+    organization_name: str | Any
+    events: list[AuditEventRecord]
+    # Where this page ended. Pass it back as `cursor` to read on; it is returned even when the page is short, so a poller always has its place. Null only when there was no position to report.
+    next_cursor: str | Any
+    # Whether another page is ready now.
+    has_more: bool
 
 
 class AuthErrorEnvelope(TypedDict):
@@ -356,6 +382,10 @@ class EnrollRequest(TypedDict, total=False):
     end_user_id: str | Any
     # Capture tier the agent is running: 'extension' or 'proxy'
     coverage: str
+    # Lowercase hex SHA-256 the agent derived from this machine's identity
+    machine_identity: str | Any
+    # What machine_identity was derived from: hardware | os_install | vdi_pool
+    machine_identity_source: str | Any
 
 
 class EnrollResponse(TypedDict, total=False):
@@ -373,13 +403,15 @@ class EnrollResponse(TypedDict, total=False):
     account_type: str
 
 
-class ErrorDetail(TypedDict):
+class ErrorDetail(TypedDict, total=False):
     # Human-readable error description
     message: str
     # Error category, e.g. 'authentication_error'
     type: str
     # Machine-readable error code
     code: str
+    # The error catalogue's entry for `code` (cause and fix); present when the catalogue documents the code
+    doc_url: str | Any
 
 
 class ErrorEnvelope(TypedDict):
@@ -525,6 +557,12 @@ class GuardResponse(TypedDict, total=False):
     unscanned: list[UnscannedAttachment]
     # Unavailable checks: detectors this scan would have run but the deployment cannot, because their backing service (an ML inference endpoint, an LLM judge, a bundled model) is not configured. An `allow` with a non-empty `unavailable` is NOT 'every check passed' — these detectors never looked. A detector that ran and found nothing is not listed, and neither is one the project's plan or guardrail settings leave out.
     unavailable: list[UnavailableCheck]
+    # How many Requests this call counted as toward the monthly allowance: 1 for a scan, whatever its length. 0 for a call that is not a scan: a findings-only report, a doctor probe or an Override.
+    requests_counted: int
+    # The tokens of content this call scanned, counted with the `cl100k_base` tokenizer whatever model the content is for: each scanned text is encoded on its own and the counts are added. What is scanned is the messages read with their tool calls, retrieved context and Tool definitions; for a Shadow AI Device, the Current turn, the Instructions and the Tool definitions not already checked, never an Earlier turn. Reported, not yet charged for. 0 for a call that is not a scan.
+    billed_tokens: int
+    # The Detection level this call ran at: always `deep`, every detector including the LLM judges. Every plan runs the full engine and is billed at one list price, per call and per Billed token.
+    detection_level: str
     # What this account is entitled to, at the instant this scan was answered. Null when the engine cannot say — an account with no subscription row, an admin key that bypasses the counter, or a row it could not read. Null is 'unknown', NOT 'unentitled': a client that reads it as a limit has invented a refusal the engine never made.
     entitlement: GuardEntitlement | Any
 
@@ -787,13 +825,38 @@ class QuotaErrorDetail(TypedDict, total=False):
     code: str
     current_plan: str
     requests_used: int
-    requests_limit: int
+    # The month's Request allowance; null on a Plan sold in usage credit (ADR-0041), which reports `credit_*` instead
+    requests_limit: int | Any
+    # The month's usage credit at list prices, in US dollars
+    credit_usd: float | Any
+    # What this month's Requests cost at list prices, in US dollars
+    credit_used_usd: float | Any
+    # The month's usage credit not yet spent, in US dollars
+    credit_remaining_usd: float | Any
     upgrade_url: str
     retry_after: int | Any
+    # The error catalogue's entry for `code` (cause and fix); present when the catalogue documents the code
+    doc_url: str | Any
 
 
 class QuotaErrorEnvelope(TypedDict):
     error: QuotaErrorDetail
+
+
+class RateLimitErrorDetail(TypedDict, total=False):
+    message: str
+    # 'rate_limit_exceeded'
+    type: str
+    # 'rate_limit_exceeded'
+    code: str
+    # Seconds until the window resets; also `Retry-After`
+    retry_after: int
+    # The error catalogue's entry for `code` (cause and fix); present when the catalogue documents the code
+    doc_url: str | Any
+
+
+class RateLimitErrorEnvelope(TypedDict):
+    error: RateLimitErrorDetail
 
 
 class RedactRequest(TypedDict, total=False):
@@ -810,7 +873,7 @@ class RedactResponse(TypedDict):
 
 
 class SampleSource(TypedDict, total=False):
-    """Where the shadow traffic sample comes from. ``corpus`` reuses the curated Shadow eval corpus (offline, deterministic); ``inline`` lets the caller pass their own recent-traffic prompts."""
+    """Where the shadow traffic sample comes from. ``corpus`` reuses the curated Shadow eval corpus (offline, deterministic); ``inline`` lets the caller pass their own recent-traffic prompts. The corpus is not in PromptGuard's API images, hosted or self-hosted, which answer ``corpus`` with 400 ``overlay_corpus_unavailable``: send ``inline`` with ``texts``."""
 
     kind: Literal["corpus", "inline"]
     limit: int
@@ -880,6 +943,26 @@ class SiemEventRecord(TypedDict, total=False):
     dashboard_url: str
     text: str
     threshold: dict[str, Any] | Any
+
+
+class SubscriptionInactiveErrorDetail(TypedDict, total=False):
+    """A refusal for the subscription's state, not for a spent quota. Deliberately not ``QuotaErrorDetail``: it carries no ``requests_used`` / ``requests_limit`` (nothing was exceeded -- reporting them beside this message is the contradiction #565 was filed for), no ``retry_after`` (waiting does not fix it), and no ``on_demand_url`` (pay-as-you-go on a dead subscription is refused by design). One door, and it works."""
+
+    message: str
+    # 'subscription_inactive'
+    type: str
+    # 'subscription_inactive'
+    code: str
+    current_plan: str
+    # e.g. 'cancelled', 'past_due', 'paused'; 'none' where no plan covers the key's organization at all
+    subscription_status: str
+    reactivate_url: str
+    # The error catalogue's entry for `code` (cause and fix); present when the catalogue documents the code
+    doc_url: str | Any
+
+
+class SubscriptionInactiveErrorEnvelope(TypedDict):
+    error: SubscriptionInactiveErrorDetail
 
 
 class TestCatalog(TypedDict):
@@ -1051,6 +1134,10 @@ class UsageStatsResponse(TypedDict, total=False):
     used_this_month: int
     remaining: int
     usage_percentage: float
+    credit_usd: float | Any
+    credit_used_usd: float
+    credit_remaining_usd: float | Any
+    billed_tokens_this_month: int
     reset_date: str | Any
 
 
