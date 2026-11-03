@@ -13,6 +13,12 @@ survives three releases is a changelog nobody is maintaining.
 
 ## [Unreleased]
 
+## [2.5.0] — 2026-11-03
+
+Generated types and packaging metadata only: no runtime behaviour changed.
+Additive in `promptguard.generated.api_types` except three agent-registration
+types, removed with their endpoints (see Removed).
+
 ### Added
 
 - **Every release is announced in Slack `#releases`, and PyPI links the
@@ -22,6 +28,47 @@ survives three releases is a changelog nobody is maintaining.
   the `SLACK_RELEASES_WEBHOOK_URL` secret, and an unset secret or a Slack
   failure is a warning, never a failed release. `pyproject.toml` adds a
   `Changelog` project URL, which PyPI lists beside Homepage and Repository.
+- **Generated API types and the cross-SDK `/guard` contract (v1.10.0) synced
+  from the published spec** (#50). All of it lives in
+  `promptguard.generated.api_types`.
+  - `GuardResponse` gains `flagged` (a finding was reported, not enforced;
+    `decision` stays `allow`), `detectors_agreeing` and `basis` (what a `block`
+    rests on), and `requests_counted`, `billed_tokens` and `detection_level`.
+    `ThreatDetail` gains `flagged` and `segment`.
+  - `GuardContext.tool_definitions` (tools offered to the model, scanned as
+    tool manifests), `GuardRequest.override` with the new `GuardOverride`
+    (a Shadow AI Device's report that a coached prompt was sent anyway), and
+    `EnrollRequest.machine_identity` / `machine_identity_source`.
+  - Error shapes: `doc_url` on `ErrorDetail` (now `total=False`) and
+    `QuotaErrorDetail`; `QuotaErrorDetail.requests_limit` may be null on a
+    credit-based plan, which reports `credit_usd`, `credit_used_usd` and
+    `credit_remaining_usd`; new `RateLimitErrorDetail` /
+    `RateLimitErrorEnvelope` and `SubscriptionInactiveErrorDetail` /
+    `SubscriptionInactiveErrorEnvelope`.
+  - SIEM and audit export shapes: `SiemEventRecord`, `ExportPage`,
+    `AuditEventRecord` and `AuditExportPage`. `UsageStatsResponse` gains the
+    credit fields and `billed_tokens_this_month`.
+
+  The client's `GuardDecision` is unchanged: it decides on `decision`, and the
+  contract's two new cases (an `allow` with `flagged`, and a `block` with
+  `detectors_agreeing` and `basis`) pass without code changes.
+- PyPI lists the repository at `github.com/promptguardhq/promptguard-python`,
+  where it now lives.
+
+### Removed
+
+- **`AgentRegisterRequest`, `AgentRegisterResponse` and `AgentRotateResponse`
+  are gone from the generated types**, with the agent-registration endpoints
+  they described. Not a major bump, as with `ApiKeyFullResponse` in 2.2.0: the
+  generated module is type-only and not re-exported from `promptguard`. A
+  project that imported them from `promptguard.generated.api_types` directly
+  will need to drop them.
+
+### Changed
+
+- Development only: ruff 0.17.3, pytest-asyncio's fixture loop scope set, and
+  langsmith's `asyncio.iscoroutinefunction` deprecation ignored under Python
+  3.14 (#49). Nothing in the installed package is affected.
 
 ## [2.4.2] — 2026-10-23
 
