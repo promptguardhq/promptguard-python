@@ -26,6 +26,14 @@ repos:
 
   - repo: local
     hooks:
+      # The whole local gate at push time: scripts/check.sh is what CI runs.
+      - id: check
+        name: scripts/check.sh
+        entry: bash scripts/check.sh
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
       # Same checks as CI's "Agent files and no em/en dashes" step.
       - id: agent-files
         name: Agent files load and resolve

@@ -21,12 +21,11 @@ range: `scripts/hooks/gitleaks-push.sh`.
 
 ## Checks
 
-After editing Python, run `ruff check --fix .` and `ruff format .`. Before
-pushing, reproduce CI (`.github/workflows/ci.yml`):
-
-```bash
-ruff check . && ruff format --check . && mypy promptguard && pytest tests/ --cov
-```
+After editing Python, run `ruff check --fix .` and `ruff format .`. **Before
+you hand back a change, run `bash scripts/check.sh`**: ruff, mypy and the
+suite with CI's coverage floor, about five seconds. The pre-push hook runs it.
+In a worktree it uses the main checkout's `.venv` and puts the worktree first
+on the import path.
 
 The suite is fully mocked and offline. `pytest` turns warnings into errors and
 runs pytest-asyncio in strict mode, so every async test needs
