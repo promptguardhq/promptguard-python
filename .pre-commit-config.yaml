@@ -26,6 +26,21 @@ repos:
 
   - repo: local
     hooks:
+      # Same checks as CI's "Agent files and no em/en dashes" step.
+      - id: agent-files
+        name: Agent files load and resolve
+        entry: python3 scripts/check_agent_files.py --check
+        language: system
+        stages: [pre-commit]
+        pass_filenames: false
+        always_run: true
+      - id: no-dashes
+        name: No em or en dashes
+        entry: python3 scripts/check_no_dashes.py --check
+        language: system
+        stages: [pre-commit]
+        pass_filenames: false
+        always_run: true
       # Secret scanning at PUSH time. This package is published to PyPI and the
       # repo is public, so a credential reaching main is world-readable at once.
       # CI scans too (.github/workflows/secret-scan.yml); this catches it before
