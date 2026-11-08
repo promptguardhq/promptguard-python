@@ -163,7 +163,7 @@ def _system_instruction_text(config: Any) -> str:
 
 
 def _extract_messages(
-    args: tuple, kwargs: dict
+    args: tuple[Any, ...], kwargs: dict[str, Any]
 ) -> tuple[list[dict[str, str]], str | None, dict[str, Any]]:
     """``(args, kwargs) -> (guard_messages, model, context)``.
 
@@ -202,7 +202,9 @@ def _extract_response_text(response: Any) -> str | None:
         return None
 
 
-def _apply_redaction(_args: tuple, kwargs: dict, redacted: list[dict[str, str]]) -> dict | None:
+def _apply_redaction(
+    _args: tuple[Any, ...], kwargs: dict[str, Any], redacted: list[dict[str, str]]
+) -> dict[str, Any] | None:
     """Rewrite ``contents`` with the redacted text.
 
     Only the non-system messages map back onto ``contents``; the system

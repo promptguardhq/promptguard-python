@@ -14,7 +14,7 @@ import time
 from collections.abc import AsyncIterator, Iterator
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 from urllib.parse import quote, urlsplit, urlunsplit
 
 import httpx
@@ -231,7 +231,7 @@ class ChatCompletions:
         temperature: float = 1.0,
         max_tokens: int | None = None,
         stream: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> dict[str, Any] | Iterator[dict[str, Any]]:
         payload: dict[str, Any] = {
             "model": model,
@@ -286,11 +286,13 @@ class Security:
         self._client = client
 
     def scan(self, content: str, content_type: str = "prompt") -> "SecurityScanResult":
-        return self._client._request(  # type: ignore[return-value]
+        # The body is the documented SecurityScanResult; _request is untyped JSON.
+        data = self._client._request(
             "POST",
             "/security/scan",
             json={"content": content, "type": content_type},
         )
+        return cast("SecurityScanResult", data)
 
     def redact(self, content: str, pii_types: list[str] | None = None) -> dict[str, Any]:
         return self._client._request(
@@ -416,7 +418,7 @@ class PromptGuard:
         self.agent = Agent(self)
         self.redteam = RedTeam(self)
 
-    def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
+    def _request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
         url = f"{self.config.base_url}{path}"
         headers = _sdk_headers(self.config.api_key)
         last_exc: Exception | None = None
@@ -459,13 +461,13 @@ class PromptGuard:
             raise last_exc
         raise PromptGuardError(message="Max retries exceeded", code="MAX_RETRIES", status_code=0)
 
-    def close(self):
+    def close(self) -> None:
         self._http.close()
 
-    def __enter__(self):
+    def __enter__(self) -> "PromptGuard":
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: object) -> None:
         self.close()
 
 
@@ -486,7 +488,7 @@ class AsyncChatCompletions:
         temperature: float = 1.0,
         max_tokens: int | None = None,
         stream: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> dict[str, Any] | AsyncIterator[dict[str, Any]]:
         payload: dict[str, Any] = {
             "model": model,
@@ -541,11 +543,13 @@ class AsyncSecurity:
         self._client = client
 
     async def scan(self, content: str, content_type: str = "prompt") -> "SecurityScanResult":
-        return await self._client._request(  # type: ignore[return-value]
+        # The body is the documented SecurityScanResult; _request is untyped JSON.
+        data = await self._client._request(
             "POST",
             "/security/scan",
             json={"content": content, "type": content_type},
         )
+        return cast("SecurityScanResult", data)
 
     async def redact(self, content: str, pii_types: list[str] | None = None) -> dict[str, Any]:
         return await self._client._request(
@@ -656,7 +660,7 @@ class PromptGuardAsync:
         self.agent = AsyncAgent(self)
         self.redteam = AsyncRedTeam(self)
 
-    async def _request(self, method: str, path: str, **kwargs) -> dict[str, Any]:
+    async def _request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
         url = f"{self.config.base_url}{path}"
         headers = _sdk_headers(self.config.api_key)
         last_exc: Exception | None = None
@@ -699,11 +703,11 @@ class PromptGuardAsync:
             raise last_exc
         raise PromptGuardError(message="Max retries exceeded", code="MAX_RETRIES", status_code=0)
 
-    async def close(self):
+    async def close(self) -> None:
         await self._http.aclose()
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "PromptGuardAsync":
         return self
 
-    async def __aexit__(self, *args):
+    async def __aexit__(self, *args: object) -> None:
         await self.close()

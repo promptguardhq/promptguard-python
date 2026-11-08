@@ -37,7 +37,7 @@ _BEDROCK_OPERATIONS = frozenset(("InvokeModel", "Converse", "ConverseStream"))
 # -- Intercept filter --------------------------------------------------------
 
 
-def _should_intercept(args: tuple, kwargs: dict) -> bool:
+def _should_intercept(args: tuple[Any, ...], kwargs: dict[str, Any]) -> bool:
     """Only intercept Bedrock Runtime operations, not all botocore calls."""
     operation_name = args[1] if len(args) > 1 else kwargs.get("operation_name")
     return operation_name in _BEDROCK_OPERATIONS
@@ -47,7 +47,7 @@ def _should_intercept(args: tuple, kwargs: dict) -> bool:
 
 
 def _extract_guard_messages(
-    args: tuple, kwargs: dict
+    args: tuple[Any, ...], kwargs: dict[str, Any]
 ) -> tuple[list[dict[str, str]], str | None, dict[str, Any]]:
     """Extract guard messages from _make_api_call(self, operation_name, api_params)."""
     if len(args) < 3:
@@ -146,7 +146,9 @@ def _system_produces_message(system: Any) -> bool:
     return False
 
 
-def _apply_redaction(args: tuple, kwargs: dict, redacted: list[dict[str, str]]) -> dict | None:
+def _apply_redaction(
+    args: tuple[Any, ...], kwargs: dict[str, Any], redacted: list[dict[str, str]]
+) -> dict[str, Any] | None:
     """Write redacted content back into the Bedrock request.
 
     ``api_params`` is passed positionally (``_make_api_call(self, op, params)``)
@@ -171,7 +173,7 @@ def _apply_redaction(args: tuple, kwargs: dict, redacted: list[dict[str, str]]) 
     return kwargs if applied else None
 
 
-def _redact_invoke_body(api_params: dict, redacted: list[dict[str, str]]) -> bool:
+def _redact_invoke_body(api_params: dict[str, Any], redacted: list[dict[str, str]]) -> bool:
     """Redact an InvokeModel body in place.  Returns False when it cannot."""
     raw = api_params.get("body", b"")
     was_bytes = isinstance(raw, bytes | bytearray)
@@ -197,7 +199,7 @@ def _redact_invoke_body(api_params: dict, redacted: list[dict[str, str]]) -> boo
     return True
 
 
-def _redact_converse_params(api_params: dict, redacted: list[dict[str, str]]) -> bool:
+def _redact_converse_params(api_params: dict[str, Any], redacted: list[dict[str, str]]) -> bool:
     # Converse passes messages/system directly on api_params.  Real botocore
     # uses lowercase keys (``messages`` / ``system``); older/hand-rolled callers
     # sometimes use the capitalized forms, so prefer those only when present.
@@ -213,7 +215,7 @@ def _redact_converse_params(api_params: dict, redacted: list[dict[str, str]]) ->
 
 
 def _redact_body_dict(
-    body: dict,
+    body: dict[str, Any],
     redacted: list[dict[str, str]],
     system_key: str,
     messages_key: str = "messages",
@@ -326,7 +328,7 @@ def _extract_response(response: Any) -> str | None:
     return None
 
 
-def _read_response_body(response: dict) -> bytes | bytearray | str | None:
+def _read_response_body(response: dict[str, Any]) -> bytes | bytearray | str | None:
     """Read the InvokeModel response body without stealing it from the caller.
 
     A botocore ``StreamingBody`` can only be read once, so after we consume it
@@ -363,7 +365,7 @@ def _read_response_body(response: dict) -> bytes | bytearray | str | None:
     return data
 
 
-def _extract_invoke_response_text(response: dict) -> str | None:
+def _extract_invoke_response_text(response: dict[str, Any]) -> str | None:
     data = _read_response_body(response)
     if data is None:
         return None

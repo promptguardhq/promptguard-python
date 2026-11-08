@@ -29,11 +29,14 @@ Usage::
 import functools
 import logging
 from collections.abc import Callable
-from typing import Any
+from typing import Any, TypeVar
 
 from promptguard._resolve import resolve_credentials, validate_mode
 from promptguard._session import validate_session_id, with_session_id
 from promptguard.guard import GuardClient, GuardDecision, PromptGuardBlockedError
+
+# A CrewAI tool class; its ``_run`` is looked up dynamically, hence type[Any].
+_ToolT = TypeVar("_ToolT", bound=type[Any])
 
 logger = logging.getLogger("promptguard")
 
@@ -214,17 +217,17 @@ def secure_tool(
     base_url: str | None = None,
     mode: str = "enforce",
     fail_open: bool = True,
-) -> Callable:
+) -> Callable[[_ToolT], _ToolT]:
     """Decorator to wrap a CrewAI tool's ``_run`` method with PromptGuard."""
     resolved_key, resolved_url = resolve_credentials(api_key, base_url)
     validate_mode(mode)
     guard = GuardClient(api_key=resolved_key, base_url=resolved_url)
 
-    def decorator(cls):
+    def decorator(cls: _ToolT) -> _ToolT:
         original_run = cls._run
 
         @functools.wraps(original_run)
-        def wrapped_run(self, *args, **kwargs):
+        def wrapped_run(self: Any, *args: Any, **kwargs: Any) -> Any:
             input_text = str(args[0]) if args else str(kwargs)
             tool_name = getattr(self, "name", cls.__name__)
 

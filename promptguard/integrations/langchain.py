@@ -52,6 +52,7 @@ from promptguard.guard import GuardClient, GuardDecision, PromptGuardBlockedErro
 try:
     from langchain_core.callbacks import BaseCallbackHandler as _BaseCallbackHandler
 except ImportError:  # pragma: no cover - LangChain is in the dev extras
+    # mypy sees two definitions of one name; the fallback is deliberate.
     _BaseCallbackHandler = object  # type: ignore[assignment,misc]
 
 logger = logging.getLogger("promptguard")

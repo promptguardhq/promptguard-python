@@ -181,7 +181,8 @@ skip_empty = true
 
 [tool.mypy]
 python_version = "3.10"
-warn_return_any = true
+# strict covers warn_return_any, check_untyped_defs and the rest. The package,
+# promptguard/generated/ included, passes it with no per-module exclusions.
+strict = true
 warn_unused_configs = true
 ignore_missing_imports = true
-check_untyped_defs = true

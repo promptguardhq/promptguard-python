@@ -24,7 +24,7 @@ Modes:
 import logging
 import threading
 import weakref
-from typing import Any
+from typing import Any, Protocol, TypedDict
 
 from promptguard._resolve import resolve_credentials, validate_mode
 from promptguard.guard import GuardClient
@@ -206,10 +206,30 @@ def is_active() -> bool:
 
 # -- Patch orchestration -----------------------------------------------------
 
-_applied_patches: list = []
+
+class _PatchModule(Protocol):
+    """What every ``promptguard.patches.*_patch`` module exposes."""
+
+    NAME: str
+
+    def apply(self) -> bool: ...
+
+    def revert(self) -> None: ...
 
 
-def _try_apply_patch(patch_module: Any) -> None:
+class InstrumentationReport(TypedDict):
+    """The shape :func:`instrumentation_report` returns."""
+
+    patched: list[str]
+    detected_unpatched: list[str]
+    middleware: list[str]
+    advice_url: str
+
+
+_applied_patches: list[_PatchModule] = []
+
+
+def _try_apply_patch(patch_module: _PatchModule) -> None:
     try:
         if patch_module.apply():
             _applied_patches.append(patch_module)
@@ -222,7 +242,7 @@ def _try_apply_patch(patch_module: Any) -> None:
         )
 
 
-def _try_revert_patch(patch_module: Any) -> None:
+def _try_revert_patch(patch_module: _PatchModule) -> None:
     try:
         patch_module.revert()
         logger.debug("Reverted %s", patch_module.NAME)
@@ -266,7 +286,7 @@ _KNOWN_UNPATCHED: dict[str, str] = {
 _ADVICE_URL = "https://docs.promptguard.co/integrations/auto-instrumentation"
 
 
-def _known_patches() -> list:
+def _known_patches() -> list[_PatchModule]:
     """Every patch module, in apply order."""
     from promptguard.patches import (
         anthropic_patch,
@@ -324,7 +344,7 @@ def _detected_unpatched() -> list[str]:
     return sorted(set(found))
 
 
-def instrumentation_report() -> dict:
+def instrumentation_report() -> InstrumentationReport:
     """What is and is not instrumented, as data rather than a log line.
 
     A startup warning is only read by someone watching the logs at startup.

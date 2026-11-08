@@ -305,7 +305,7 @@ class GuardClient:
     async def __aexit__(self, *exc: object) -> None:
         await self.aclose()
 
-    def close(self):
+    def close(self) -> None:
         """Close the sync client and best-effort close all async clients.
 
         Safe to call from sync code (e.g. ``init()`` re-init and
@@ -339,7 +339,7 @@ class GuardClient:
             return
         _best_effort_close_orphan(client)
 
-    async def aclose(self):
+    async def aclose(self) -> None:
         """Async close: awaits the current loop's client, best-effort for others."""
         try:
             current_loop: asyncio.AbstractEventLoop | None = asyncio.get_running_loop()

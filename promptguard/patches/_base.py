@@ -21,9 +21,17 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from promptguard.guard import GuardApiError, PromptGuardBlockedError
+from promptguard.guard import GuardApiError, GuardDecision, PromptGuardBlockedError
 
 logger = logging.getLogger("promptguard")
+
+#: ``(args, kwargs, redacted_messages) -> new kwargs``, or ``None`` when the
+#: call shape cannot be rewritten safely.
+ApplyRedaction = Callable[
+    [tuple[Any, ...], dict[str, Any], list[dict[str, str]]], dict[str, Any] | None
+]
+#: ``(args, kwargs) -> (guard_messages, model, context)``.
+ExtractMessages = Callable[..., tuple[list[dict[str, str]], str | None, dict[str, Any]]]
 
 
 # -- Shared decision helpers (used by both sync and async wrappers) ----------
@@ -65,13 +73,13 @@ def rewrite_message_object(msg: Any, attr: str, value: str) -> Any | None:
 
 
 def _handle_pre_scan_decision(
-    decision: Any,
+    decision: GuardDecision | None,
     guard_messages: list[dict[str, str]],
     get_mode: Callable[[], str],
-    apply_redaction: Callable | None,
-    args: tuple,
-    kwargs: dict,
-) -> dict:
+    apply_redaction: ApplyRedaction | None,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+) -> dict[str, Any]:
     """Process a pre-call guard decision.  Returns (possibly modified) kwargs."""
     if decision is None:
         return kwargs
@@ -93,7 +101,7 @@ def _handle_pre_scan_decision(
         # past the end of the list.  Treat a partial list like a missing one.
         is_partial = len(redacted_messages) < len(guard_messages)
         if get_mode() == "enforce":
-            new_kwargs: dict | None = None
+            new_kwargs: dict[str, Any] | None = None
             if redacted_messages and not is_partial and apply_redaction is not None:
                 # Handlers return ``None`` when the call shape cannot be
                 # rewritten safely; that escalates to a block below.
@@ -132,7 +140,7 @@ def _handle_pre_scan_decision(
     return kwargs
 
 
-def _handle_response_decision(resp_decision: Any, get_mode: Callable[[], str]) -> None:
+def _handle_response_decision(resp_decision: GuardDecision, get_mode: Callable[[], str]) -> None:
     """Handle a response (output-direction) scan decision.
 
     Block: raise in enforce mode; warn in monitor mode (mirroring the input
@@ -176,12 +184,12 @@ def _handle_response_decision(resp_decision: Any, get_mode: Callable[[], str]) -
 
 
 def wrap_sync(
-    original_fn: Callable,
-    extract_messages: Callable[..., tuple[list[dict[str, str]], str | None, dict[str, Any]]],
+    original_fn: Callable[..., Any],
+    extract_messages: ExtractMessages,
     extract_response: Callable[[Any], str | None],
-    apply_redaction: Callable | None = None,
+    apply_redaction: ApplyRedaction | None = None,
     should_intercept: Callable[..., bool] | None = None,
-) -> Callable:
+) -> Callable[..., Any]:
     """Create a sync wrapper that scans before/after the original call.
 
     Parameters
@@ -202,7 +210,7 @@ def wrap_sync(
     """
 
     @functools.wraps(original_fn)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         if should_intercept and not should_intercept(args, kwargs):
             return original_fn(*args, **kwargs)
 
@@ -263,16 +271,16 @@ def wrap_sync(
 
 
 def wrap_async(
-    original_fn: Callable,
-    extract_messages: Callable[..., tuple[list[dict[str, str]], str | None, dict[str, Any]]],
+    original_fn: Callable[..., Any],
+    extract_messages: ExtractMessages,
     extract_response: Callable[[Any], str | None],
-    apply_redaction: Callable | None = None,
+    apply_redaction: ApplyRedaction | None = None,
     should_intercept: Callable[..., bool] | None = None,
-) -> Callable:
+) -> Callable[..., Any]:
     """Async variant of ``wrap_sync``.  Same interface."""
 
     @functools.wraps(original_fn)
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
         if should_intercept and not should_intercept(args, kwargs):
             return await original_fn(*args, **kwargs)
 

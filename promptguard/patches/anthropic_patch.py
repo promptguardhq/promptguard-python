@@ -130,7 +130,9 @@ def _messages_to_guard_format(
     return result
 
 
-def _extract_messages(args, kwargs) -> tuple[list[dict[str, str]], str | None, dict[str, Any]]:
+def _extract_messages(
+    args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> tuple[list[dict[str, str]], str | None, dict[str, Any]]:
     messages = kwargs.get("messages")
     model = kwargs.get("model")
     system = kwargs.get("system")
@@ -138,7 +140,9 @@ def _extract_messages(args, kwargs) -> tuple[list[dict[str, str]], str | None, d
     return guard_messages, str(model) if model else None, {"framework": "anthropic"}
 
 
-def _apply_redaction(args, kwargs, redacted: list[dict[str, str]]) -> dict | None:
+def _apply_redaction(
+    args: tuple[Any, ...], kwargs: dict[str, Any], redacted: list[dict[str, str]]
+) -> dict[str, Any] | None:
     """Write redacted content back into Anthropic ``create()`` kwargs.
 
     Mirrors ``_messages_to_guard_format`` (``system`` first, then every
@@ -148,7 +152,7 @@ def _apply_redaction(args, kwargs, redacted: list[dict[str, str]]) -> dict | Non
     """
     if not redacted:
         return None
-    new_kwargs: dict = dict(kwargs)
+    new_kwargs: dict[str, Any] = dict(kwargs)
     system = new_kwargs.get("system")
     messages = new_kwargs.get("messages")
     # Use the exact same predicate as extraction so the message index offset
@@ -160,7 +164,7 @@ def _apply_redaction(args, kwargs, redacted: list[dict[str, str]]) -> dict | Non
         new_kwargs["system"] = redacted[0]["content"]
 
     if messages:
-        result: list = []
+        result: list[Any] = []
         for i, msg in enumerate(messages):
             idx = i + offset
             if idx >= len(redacted):

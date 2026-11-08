@@ -21,10 +21,17 @@ reasoning items, etc.) are not scanned.
 
 import importlib.util
 import logging
+from collections.abc import Callable
 from typing import Any
 
 from promptguard._session import as_session_id
-from promptguard.patches._base import rewrite_message_object, wrap_async, wrap_sync
+from promptguard.patches._base import (
+    ApplyRedaction,
+    ExtractMessages,
+    rewrite_message_object,
+    wrap_async,
+    wrap_sync,
+)
 
 logger = logging.getLogger("promptguard")
 
@@ -75,7 +82,9 @@ def _messages_to_guard_format(messages: Any) -> list[dict[str, str]]:
     return result
 
 
-def _extract_messages(args, kwargs) -> tuple[list[dict[str, str]], str | None, dict[str, Any]]:
+def _extract_messages(
+    args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> tuple[list[dict[str, str]], str | None, dict[str, Any]]:
     """Extract messages and model from OpenAI create() call signature.
 
     ``Completions.create`` is patched as an unbound method and takes
@@ -97,7 +106,9 @@ def _emits_guard_message(msg: Any) -> bool:
     return isinstance(msg, dict) or (hasattr(msg, "role") and hasattr(msg, "content"))
 
 
-def _apply_redaction(args, kwargs, redacted: list[dict[str, str]]) -> dict | None:
+def _apply_redaction(
+    args: tuple[Any, ...], kwargs: dict[str, Any], redacted: list[dict[str, str]]
+) -> dict[str, Any] | None:
     """Apply redacted content back into kwargs.
 
     Mirrors ``_messages_to_guard_format``: only entries that emitted a guard
@@ -108,7 +119,7 @@ def _apply_redaction(args, kwargs, redacted: list[dict[str, str]]) -> dict | Non
     messages = kwargs.get("messages")
     if not messages or not redacted:
         return None
-    result: list = []
+    result: list[Any] = []
     guard_idx = 0
     for msg in messages:
         if not _emits_guard_message(msg):
@@ -134,7 +145,7 @@ def _apply_redaction(args, kwargs, redacted: list[dict[str, str]]) -> dict | Non
             if rewritten is None:
                 return None
             result.append(rewritten)
-    new_kwargs: dict = dict(kwargs)
+    new_kwargs: dict[str, Any] = dict(kwargs)
     new_kwargs["messages"] = result
     return new_kwargs
 
@@ -197,7 +208,7 @@ def _is_responses_message_item(item: Any) -> bool:
     return "role" in item or "content" in item
 
 
-def _responses_input_to_guard_format(kwargs: dict) -> list[dict[str, str]]:
+def _responses_input_to_guard_format(kwargs: dict[str, Any]) -> list[dict[str, str]]:
     """Extract guard messages from Responses API params: ``instructions``
     (system), then ``input`` as a plain string or a list of message items."""
     result: list[dict[str, str]] = []
@@ -226,7 +237,7 @@ def _responses_input_to_guard_format(kwargs: dict) -> list[dict[str, str]]:
 
 
 def _extract_responses_messages(
-    args, kwargs
+    args: tuple[Any, ...], kwargs: dict[str, Any]
 ) -> tuple[list[dict[str, str]], str | None, dict[str, Any]]:
     model = kwargs.get("model")
     guard_messages = _responses_input_to_guard_format(kwargs)
@@ -251,7 +262,9 @@ def _responses_conversation_id(conversation: Any) -> str | None:
     return as_session_id(conversation)
 
 
-def _apply_responses_redaction(args, kwargs, redacted: list[dict[str, str]]) -> dict | None:
+def _apply_responses_redaction(
+    args: tuple[Any, ...], kwargs: dict[str, Any], redacted: list[dict[str, str]]
+) -> dict[str, Any] | None:
     """Map redacted guard messages back onto Responses API kwargs.
 
     Mirrors ``_responses_input_to_guard_format``: ``instructions`` first
@@ -259,7 +272,7 @@ def _apply_responses_redaction(args, kwargs, redacted: list[dict[str, str]]) -> 
     ``None`` for shapes that cannot be rewritten safely (escalated to a
     block in enforce mode).
     """
-    new_kwargs: dict = dict(kwargs)
+    new_kwargs: dict[str, Any] = dict(kwargs)
     guard_idx = 0
 
     instructions = kwargs.get("instructions")
@@ -279,7 +292,7 @@ def _apply_responses_redaction(args, kwargs, redacted: list[dict[str, str]]) -> 
         # Only ``instructions`` was extracted; anything else is unredactable.
         return new_kwargs if guard_idx > 0 else None
 
-    new_input: list = []
+    new_input: list[Any] = []
     for item in input_param:
         if not _is_responses_message_item(item):
             new_input.append(item)
@@ -329,7 +342,13 @@ def _extract_responses_response_text(response: Any) -> str | None:
 # ---------------------------------------------------------------------------
 
 
-def _patch_method(cls: Any, cls_name: str, method_name: str, *, is_async: bool, config) -> bool:
+# (extract_messages, extract_response, apply_redaction), as wrap_sync/wrap_async take them.
+_WrapConfig = tuple[ExtractMessages, Callable[[Any], str | None], ApplyRedaction]
+
+
+def _patch_method(
+    cls: Any, cls_name: str, method_name: str, *, is_async: bool, config: _WrapConfig
+) -> bool:
     """Wrap ``cls.<method_name>`` and record the original.  Returns success."""
     if not hasattr(cls, method_name):
         return False

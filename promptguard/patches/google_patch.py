@@ -84,7 +84,7 @@ def _extract_text_from_parts(parts: Any) -> str:
 
 
 def _extract_messages(
-    args: tuple, kwargs: dict
+    args: tuple[Any, ...], kwargs: dict[str, Any]
 ) -> tuple[list[dict[str, str]], str | None, dict[str, Any]]:
     """Extract guard messages from GenerativeModel.generate_content args.
 

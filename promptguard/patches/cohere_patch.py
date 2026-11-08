@@ -88,7 +88,9 @@ def _to_guard_messages(
     return result
 
 
-def _extract_messages(args, kwargs) -> tuple[list[dict[str, str]], str | None, dict[str, Any]]:
+def _extract_messages(
+    args: tuple[Any, ...], kwargs: dict[str, Any]
+) -> tuple[list[dict[str, str]], str | None, dict[str, Any]]:
     guard_messages = _to_guard_messages(
         message=kwargs.get("message"),
         chat_history=kwargs.get("chat_history"),
@@ -111,7 +113,9 @@ def _emits_history_guard_message(msg: Any) -> bool:
     return isinstance(msg, dict) or hasattr(msg, "role")
 
 
-def _apply_redaction(args, kwargs, redacted: list[dict[str, str]]) -> dict | None:
+def _apply_redaction(
+    args: tuple[Any, ...], kwargs: dict[str, Any], redacted: list[dict[str, str]]
+) -> dict[str, Any] | None:
     """Write redacted content back into Cohere chat kwargs.
 
     Mirrors the extraction order in ``_to_guard_messages``:
@@ -127,11 +131,11 @@ def _apply_redaction(args, kwargs, redacted: list[dict[str, str]]) -> dict | Non
     """
     if not redacted:
         return None
-    new_kwargs: dict = dict(kwargs)
+    new_kwargs: dict[str, Any] = dict(kwargs)
 
     messages = new_kwargs.get("messages")
     if messages:
-        rebuilt: list = []
+        rebuilt: list[Any] = []
         guard_idx = 0
         for msg in messages:
             if not _emits_v2_guard_message(msg):
