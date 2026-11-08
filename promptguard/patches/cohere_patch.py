@@ -34,7 +34,7 @@ def _preamble_to_text(preamble: Any) -> str | None:
 
     The preamble is Cohere v1's system prompt, so it is scanned as a
     ``system`` guard message.  Single source of truth for "does ``preamble``
-    produce a guard message" — shared by extraction and redaction so their
+    produce a guard message", shared by extraction and redaction so their
     indices stay aligned (v2 ``messages`` calls never use it).
     """
     if isinstance(preamble, str) and preamble:

@@ -23,7 +23,7 @@ before the app runs or replays the original bytes to the app unchanged.
 
 This is the choice for an app that **accepts** prompts but calls the LLM
 somewhere auto-instrumentation does not patch. With ``promptguard.init()`` also
-on, the same text is scanned twice — once here, once at the provider call.
+on, the same text is scanned twice, once here, once at the provider call.
 
 The scan is the async Guard client's ``scan_async``, and a body larger than
 :data:`OFF_LOOP_BODY_BYTES` is decoded and parsed in a worker thread, so
@@ -63,7 +63,7 @@ NAME = "fastapi"
 #: common LLM request bodies:
 #:
 #: * a list of message objects (anything with ``role``, ``content`` or
-#:   ``tool_calls``) is scanned message by message, keeping each role —
+#:   ``tool_calls``) is scanned message by message, keeping each role,
 #:   ``messages`` (OpenAI / Anthropic chat) and ``input`` (OpenAI Responses
 #:   API) arrive this way; a message's ``tool_calls`` go to the Guard API as
 #:   tool calls;
@@ -497,8 +497,8 @@ class PromptGuardMiddleware:
     ``application/x-www-form-urlencoded`` (its fields). ``gzip`` and
     ``deflate`` bodies are decompressed first. ``multipart/form-data`` and
     other media are passed on unscanned. In enforce mode a body that cannot
-    be read — an unknown ``Content-Encoding`` (``415``) or charset (``415``),
-    undecodable text or invalid JSON (``400``) — is refused; monitor mode logs
+    be read, an unknown ``Content-Encoding`` (``415``) or charset (``415``),
+    undecodable text or invalid JSON (``400``), is refused; monitor mode logs
     it and passes it on.
 
     A redact decision cannot be applied to an arbitrary body, so enforce mode

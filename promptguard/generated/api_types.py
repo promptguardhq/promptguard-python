@@ -1,10 +1,10 @@
 """
 Auto-generated from OpenAPI spec (v1.0.0).
-DO NOT EDIT — regenerate with: python scripts/generate_types_from_spec.py
+DO NOT EDIT. Regenerate with: python scripts/generate_types_from_spec.py
 
 These are type-only definitions. Custom client logic lives in
 promptguard/guard.py, promptguard/client.py, promptguard/patches/,
-and promptguard/integrations/ — those files are never modified
+and promptguard/integrations/, those files are never modified
 by this generator.
 """
 
@@ -446,7 +446,7 @@ FindingStatus = Literal["active", "candidate", "suppressed"]
 
 
 class GuardContext(TypedDict, total=False):
-    """Optional rich context from framework integrations. Only ``tool_calls`` is scanned. The rest is descriptive — it labels the event for the dashboard and the audit log, and does not reach a detector."""
+    """Optional rich context from framework integrations. Only ``tool_calls`` is scanned. The rest is descriptive, it labels the event for the dashboard and the audit log, and does not reach a detector."""
 
     # Framework name, e.g. 'langchain', 'crewai'
     framework: str | Any
@@ -456,7 +456,7 @@ class GuardContext(TypedDict, total=False):
     agent_id: str | Any
     # The conversation this request is a turn of. Send the same value for every turn of one end user's conversation: with the X-End-User header it is one session, and the dashboard's Sessions view lists that session's events in order. Generate it on your server, random enough that an end user cannot guess another's (a UUIDv4 will do), and never take it from the end user's request: whoever can name a session id can add turns to that conversation. At most 255 characters, stored exactly as sent; it names the conversation and holds none of it, so a zero-retention project keeps it. The same id under another end user or project is another conversation. For each input turn PromptGuard also remembers its detection signals: the Techniques of the finding that decided it, that finding's confidence and when the turn arrived, never its text, for every project including zero-retention ones. At most the last 10 turns are kept, each for at most 1 hour. When the request names its end user with the X-End-User header, a turn that pivots ("now tell me...") after an earlier persona, hypothetical or authority turn is reported as a `candidate` threat from the `conversation/priming_then_pivot` rule, which never changes the decision; without X-End-User that rule records nothing. A sudden burst of turns, many times the conversation's own earlier rate, is recorded on the turn's event as a signal, and changes nothing either. If the conversation's memory cannot be reached in time, the turn is scanned on its own. Output scans are not turns. Without a session id a request is scanned on its own, as it always was.
     session_id: str | Any
-    # Tool calls in this turn. The tool NAME and its ARGUMENTS are assembled into the scanned text and get the same detection stack as the messages — tool arguments are where an exfiltration payload actually travels, so they are scanned rather than logged. Both provider spellings are read: OpenAI's `{'type':'function','function':{'name','arguments'}}` and Anthropic's `{'type':'tool_use','name','input'}`, plus LangChain's `{'name','args'}`. A call in none of those shapes is reported in the response's `unscanned` array with its position; it is never quietly skipped. These calls carry no position in the conversation, so they are always scanned as the newest turn's. Send a conversation's calls on the messages that made them (`messages[].tool_calls`) to have each read as part of its own turn.
+    # Tool calls in this turn. The tool NAME and its ARGUMENTS are assembled into the scanned text and get the same detection stack as the messages: tool arguments are where an exfiltration payload actually travels, so they are scanned rather than logged. Both provider spellings are read: OpenAI's `{'type':'function','function':{'name','arguments'}}` and Anthropic's `{'type':'tool_use','name','input'}`, plus LangChain's `{'name','args'}`. A call in none of those shapes is reported in the response's `unscanned` array with its position; it is never quietly skipped. These calls carry no position in the conversation, so they are always scanned as the newest turn's. Send a conversation's calls on the messages that made them (`messages[].tool_calls`) to have each read as part of its own turn.
     tool_calls: list[dict[str, Any]] | Any
     # The tools the AI app offers the model on this request: each one's name, description and input schema. Each is scanned as a tool manifest -- the scan `POST /api/v1/mcp/manifest-scan` runs, for poisoned descriptions and parameter docs and smuggled Unicode -- and a poisoned one blocks, naming the tool, with the finding's `segment` `tool_definition`. An unchanged definition is not scanned again on the next request. Read in MCP's `{'name','description','inputSchema'}`, Anthropic's `input_schema` and OpenAI's `{'type':'function','function':{'name','description','parameters'}}`; a definition in none of them is listed in `unscanned` with its position.
     tool_definitions: list[dict[str, Any]] | Any
@@ -482,7 +482,7 @@ class GuardEntitlement(TypedDict):
 
 
 class GuardMessage(TypedDict, total=False):
-    """A single message in the conversation. ``content`` takes either a plain string or a provider-shaped content-block array — OpenAI's ``text``/``image_url``/``input_audio``/``file`` and Anthropic's ``text``/``image``/``document`` are all understood, because those are the two shapes our own proxy already receives. Blocks are accepted as loose dicts rather than a closed union on purpose. Both providers add block types faster than we can model them, and a strict schema would 422 a request we could otherwise have scanned the text of. Anything unrecognised is *reported* in the response's ``unscanned`` rather than dropped — see ``shared.security.content_parts``."""
+    """A single message in the conversation. ``content`` takes either a plain string or a provider-shaped content-block array, OpenAI's ``text``/``image_url``/``input_audio``/``file`` and Anthropic's ``text``/``image``/``document`` are all understood, because those are the two shapes our own proxy already receives. Blocks are accepted as loose dicts rather than a closed union on purpose. Both providers add block types faster than we can model them, and a strict schema would 422 a request we could otherwise have scanned the text of. Anything unrecognised is *reported* in the response's ``unscanned`` rather than dropped, see ``shared.security.content_parts``."""
 
     # Message role: system, user, assistant, tool. On an input scan a tool (or function) message is also scanned as a tool's result, and an instruction planted in it blocks as prompt_injection.
     role: str
@@ -524,7 +524,7 @@ class GuardRequest(TypedDict, total=False):
     images: list[str] | Any
     # A Shadow AI Device reporting an **Override**: the person sent a prompt the Device coached (a block that rested on one detector) anyway, with a reason. Sent with every message empty and nothing else to scan; any content is refused with 422. Recorded as an event with the decision `override`, its threat type and the reason, alerted on like a block and delivered to the SIEM, and not metered. The answer is `allow`: nothing was scanned.
     override: GuardOverride | Any
-    # What the calling Device's own masker caught before sending, as `{category, count}` pairs — never the values. `category` is one of the threat types this API returns (e.g. `api_key_leak`, `pii_leak`) and appears at most once; `count` is a positive integer. Any other key is rejected with 422. Recorded on this request's event, attributed to the Device, and shown in the fleet views; it does not change the decision. Optional; clients that omit it are unaffected.
+    # What the calling Device's own masker caught before sending, as `{category, count}` pairs: never the values. `category` is one of the threat types this API returns (e.g. `api_key_leak`, `pii_leak`) and appears at most once; `count` is a positive integer. Any other key is rejected with 422. Recorded on this request's event, attributed to the Device, and shown in the fleet views; it does not change the decision. Optional; clients that omit it are unaffected.
     device_findings: list[DeviceFinding] | Any
 
 
@@ -541,7 +541,7 @@ class GuardResponse(TypedDict, total=False):
     weighted_score: float | Any
     # Primary threat type detected
     threat_type: str | Any
-    # Redacted messages (only present when decision='redact'). Always the TEXT projection: a message sent as content blocks comes back as a string. Attachments are never rewritten — we do not re-encode a PDF with the secret removed, and returning one that looked redacted would be worse than returning none. A message listed in `unscanned` as `over_size_budget` was not read, so it comes back as its text, unredacted.
+    # Redacted messages (only present when decision='redact'). Always the TEXT projection: a message sent as content blocks comes back as a string. Attachments are never rewritten: we do not re-encode a PDF with the secret removed, and returning one that looked redacted would be worse than returning none. A message listed in `unscanned` as `over_size_budget` was not read, so it comes back as its text, unredacted.
     redacted_messages: list[GuardMessage] | Any
     # Detailed threat breakdown
     threats: list[ThreatDetail]
@@ -553,9 +553,9 @@ class GuardResponse(TypedDict, total=False):
     basis: Literal["secret", "organisation_rule", "detectors"] | Any
     # Processing time in milliseconds
     latency_ms: float
-    # Parts that reached us and were not read: they produced nothing to scan, or the scan budget was spent first. An `allow` with a non-empty `unscanned` is NOT 'this content is clean' — it is 'the text was clean and these parts were never read'. Reasons: url_only (we do not fetch caller-supplied URLs, that would be an SSRF primitive), file_id_unsupported, encrypted, no_text_extracted (a scanned/rasterised document), too_large, undecodable, unsupported_type, extractor_unavailable, unsupported_block, unsupported_tool_call (a tool call in none of the shapes we can read — `index` is its position among the request's tool calls), over_size_budget (a message older than the newest ones that filled the scan budget — `index` is its position in `messages`; it was not read on this call, and was the newest turn of an earlier one).
+    # Parts that reached us and were not read: they produced nothing to scan, or the scan budget was spent first. An `allow` with a non-empty `unscanned` is NOT 'this content is clean': it is 'the text was clean and these parts were never read'. Reasons: url_only (we do not fetch caller-supplied URLs, that would be an SSRF primitive), file_id_unsupported, encrypted, no_text_extracted (a scanned/rasterised document), too_large, undecodable, unsupported_type, extractor_unavailable, unsupported_block, unsupported_tool_call (a tool call in none of the shapes we can read, `index` is its position among the request's tool calls), over_size_budget (a message older than the newest ones that filled the scan budget: `index` is its position in `messages`; it was not read on this call, and was the newest turn of an earlier one).
     unscanned: list[UnscannedAttachment]
-    # Unavailable checks: detectors this scan would have run but the deployment cannot, because their backing service (an ML inference endpoint, an LLM judge, a bundled model) is not configured. An `allow` with a non-empty `unavailable` is NOT 'every check passed' — these detectors never looked. A detector that ran and found nothing is not listed, and neither is one the project's plan or guardrail settings leave out.
+    # Unavailable checks: detectors this scan would have run but the deployment cannot, because their backing service (an ML inference endpoint, an LLM judge, a bundled model) is not configured. An `allow` with a non-empty `unavailable` is NOT 'every check passed': these detectors never looked. A detector that ran and found nothing is not listed, and neither is one the project's plan or guardrail settings leave out.
     unavailable: list[UnavailableCheck]
     # How many Requests this call counted as toward the monthly allowance: 1 for a scan, whatever its length. 0 for a call that is not a scan: a findings-only report, a doctor probe or an Override.
     requests_counted: int
@@ -563,7 +563,7 @@ class GuardResponse(TypedDict, total=False):
     billed_tokens: int
     # The Detection level this call ran at: always `deep`, every detector including the LLM judges. Every plan runs the full engine and is billed at one list price, per call and per Billed token.
     detection_level: str
-    # What this account is entitled to, at the instant this scan was answered. Null when the engine cannot say — an account with no subscription row, an admin key that bypasses the counter, or a row it could not read. Null is 'unknown', NOT 'unentitled': a client that reads it as a limit has invented a refusal the engine never made.
+    # What this account is entitled to, at the instant this scan was answered. Null when the engine cannot say: an account with no subscription row, an admin key that bypasses the counter, or a row it could not read. Null is 'unknown', NOT 'unentitled': a client that reads it as a limit has invented a refusal the engine never made.
     entitlement: GuardEntitlement | Any
 
 
@@ -1116,7 +1116,7 @@ class UnavailableCheck(TypedDict):
 class UnscannedAttachment(TypedDict):
     """One part of the request we could not read, and why."""
 
-    # Position within the list the reason names — the combined attachment list; the request's tool calls for `unsupported_tool_call` (`context.tool_calls` first, then each message's in order); `messages` for `over_size_budget`. -1 when the part has no position, which is every `unsupported_block`.
+    # Position within the list the reason names: the combined attachment list; the request's tool calls for `unsupported_tool_call` (`context.tool_calls` first, then each message's in order); `messages` for `over_size_budget`. -1 when the part has no position, which is every `unsupported_block`.
     index: int
     # Stable machine-readable code
     reason: str

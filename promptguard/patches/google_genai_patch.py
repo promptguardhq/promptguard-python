@@ -1,5 +1,5 @@
 """
-Google Gen AI SDK patch — wraps ``google.genai.models.Models.generate_content``
+Google Gen AI SDK patch, wraps ``google.genai.models.Models.generate_content``
 and its streaming and async siblings.
 
 This is the SDK Google actually ships today. ``google_patch.py`` covers
@@ -9,7 +9,7 @@ still on the old one, and dropping it to chase the new one would be the same
 silent-unprotection bug in the other direction.
 
 Two things this patch can do that the legacy one cannot, both because the new
-signature is ``generate_content(self, *, model, contents, config=None)`` —
+signature is ``generate_content(self, *, model, contents, config=None)``,
 keyword-only, where the old one took ``contents`` positionally:
 
 * **Redaction works.** ``_base.wrap_sync``'s redaction contract rewrites kwargs,
@@ -33,7 +33,7 @@ NAME = "google-genai"
 
 # Import names that mean "this patch is relevant". `auto.py` uses these to tell
 # "the customer does not use Gemini" apart from "the customer uses Gemini and we
-# failed to hook it" — two situations that used to look identical.
+# failed to hook it": two situations that used to look identical.
 DETECTS = ("google.genai",)
 
 _originals: dict[tuple[str, str], Any] = {}

@@ -25,13 +25,13 @@ _Avoid_: runtime shim (the CLI's mechanism, not this one), monkey-patching
 (that is how it works, not what it is), agent
 
 **Framework integration**:
-An adapter that carries scanning into a framework's own call path — LangChain,
+An adapter that carries scanning into a framework's own call path, LangChain,
 CrewAI, LlamaIndex.
 _Avoid_: plugin, middleware (that is one framework's word for it)
 
 **Request-edge middleware**:
 The framework integration that scans a request as it reaches the application,
-before any route runs, rather than at the LLM call — the ASGI/FastAPI
+before any route runs, rather than at the LLM call, the ASGI/FastAPI
 `PromptGuardMiddleware`. Reported under `middleware` in the instrumentation
 report, never under `patched`.
 _Avoid_: firewall, gateway (both imply PromptGuard is in the request path to the
@@ -49,12 +49,12 @@ One Guard API call, about one set of messages, in one direction.
 _Avoid_: check, inspection, guard call
 
 **Direction**:
-Which side of the provider call a scan covers — `input` before it, `output` on
+Which side of the provider call a scan covers, `input` before it, `output` on
 what came back.
 _Avoid_: request/response, pre/post, inbound/outbound
 
 **Decision**:
-The Guard API's verdict on a scan — allow, block, or redact. A missing or
+The Guard API's verdict on a scan, allow, block, or redact. A missing or
 unrecognised verdict is an error, never an implied allow.
 _Avoid_: result, verdict, outcome
 
@@ -69,7 +69,7 @@ _Avoid_: blocking mode, strict mode
 
 **Monitor mode**:
 The posture where threats are recorded but no call is ever stopped.
-_Avoid_: shadow mode — Shadow is a separate PromptGuard product (Shadow AI
+_Avoid_: shadow mode, Shadow is a separate PromptGuard product (Shadow AI
 devices, the Shadow fleet entitlement, the Shadow eval corpus) and those names
 reach this repo through the generated API types. Also avoid: observe mode,
 dry-run mode, passive mode.
@@ -82,7 +82,7 @@ _Avoid_: fail-safe (ambiguous about which way it fails), degraded mode,
 bypass
 
 **Conversation**:
-The turns a framework treats as one exchange — a LangGraph thread, a chat
+The turns a framework treats as one exchange, a LangGraph thread, a chat
 engine's chat. A scan names it in `context.session_id` with the framework's own
 id, or names none; it is never a per-call run or event id.
 _Avoid_: session (the wire field's name, not the concept), thread (one
@@ -115,8 +115,8 @@ _Avoid_: schema types, models
 **Applied patch**:
 One provider SDK that `init()` has successfully hooked.
 _Avoid_: patched SDK, instrumented SDK, hooked library. The two SDKs still
-spell the accessor differently — `patched_sdks()` here, `getAppliedPatches()`
-in Node — but since contract v1.6.0 they are held to the same *vocabulary*, so
+spell the accessor differently, `patched_sdks()` here, `getAppliedPatches()`
+in Node, but since contract v1.6.0 they are held to the same *vocabulary*, so
 both report `bedrock` for the same provider.
 
 **Detected-unpatched library**:

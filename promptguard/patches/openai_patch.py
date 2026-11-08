@@ -8,13 +8,13 @@ Patched call surfaces (sync and async clients):
 - ``responses.create()`` (when the installed SDK ships the Responses API)
 
 This covers every framework built on top of the OpenAI Python SDK, including
-LangChain (ChatOpenAI), CrewAI, AutoGen, Semantic Kernel, and direct usage —
+LangChain (ChatOpenAI), CrewAI, AutoGen, Semantic Kernel, and direct usage,
 *for calls made through the surfaces above*.  Other OpenAI endpoints
 (embeddings, audio, images, batches, fine-tuning) are not scanned.
 
 Responses API scope: the patch extracts scannable text from the basic
-``input`` forms — a plain string, or an item list of role/content messages
-(string content or ``input_text``/``output_text``/``text`` content parts) —
+``input`` forms: a plain string, or an item list of role/content messages
+(string content or ``input_text``/``output_text``/``text`` content parts),
 plus the ``instructions`` param.  Exotic item types (function_call outputs,
 reasoning items, etc.) are not scanned.
 """
@@ -357,7 +357,7 @@ def _apply_chat_completions_patch() -> bool:
         (AsyncCompletions, "AsyncCompletions", True),
     ]:
         # ``parse()`` (structured outputs) takes the same messages/model
-        # params as ``create()`` — newer SDKs expose it on the same resource.
+        # params as ``create()``: newer SDKs expose it on the same resource.
         for method_name in ("create", "parse"):
             if _patch_method(cls, cls_name, method_name, is_async=is_async, config=chat_config):
                 patched_any = True
@@ -371,7 +371,7 @@ def _apply_responses_patch() -> bool:
         _apply_responses_redaction,
     )
     try:
-        # Guarded import: older ``openai`` versions have no Responses API —
+        # Guarded import: older ``openai`` versions have no Responses API,
         # the chat.completions patch still applies without it.
         from openai.resources.responses import AsyncResponses, Responses
     except (ImportError, AttributeError):

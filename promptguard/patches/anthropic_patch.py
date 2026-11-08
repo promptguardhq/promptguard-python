@@ -35,7 +35,7 @@ def _system_to_text(system: Any) -> str | None:
     no message.
 
     This is the single source of truth for "does ``system`` produce a guard
-    message" — used by both extraction and redaction so their indices stay in
+    message", used by both extraction and redaction so their indices stay in
     lockstep (a truthy-but-empty ``system`` must not shift the offset).
     """
     if not system:

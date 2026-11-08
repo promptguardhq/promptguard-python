@@ -7,8 +7,8 @@ serving traffic and blocks nothing, which is exactly why a positive check has to
 exist and has to be honest about what it found.
 
 The distinction these tests pin down is fail vs warn. A request that never
-completed is a **fail** — the integration is broken. A request that completed
-and came back permissive is a **warn** — the integration works and the policy is
+completed is a **fail**: the integration is broken. A request that completed
+and came back permissive is a **warn**: the integration works and the policy is
 the thing to look at. Collapsing the two in either direction makes the result
 useless: all-fail cries wolf on a monitor-mode project, all-warn hides a dead
 API key.
@@ -131,7 +131,7 @@ class TestBrokenIntegration:
 
         assert result["ok"] is False
         assert _status(result, "authentication") == "fail"
-        # The host answered — it answered 401 — so connectivity is fine and
+        # The host answered, it answered 401, so connectivity is fine and
         # saying otherwise would send someone debugging their network.
         assert _status(result, "connectivity") == "pass"
 

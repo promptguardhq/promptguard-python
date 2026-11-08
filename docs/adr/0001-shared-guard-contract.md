@@ -2,8 +2,8 @@
 
 The Python and Node SDKs are deliberate mirrors, and "keep them the same" is
 not a thing code review can be trusted to enforce across two repositories. So
-the behaviour that must match is written once as a file of cases —
-`tests/guard-contract.json` — which both SDKs vendor and both test suites run.
+the behaviour that must match is written once as a file of cases,
+`tests/guard-contract.json`, which both SDKs vendor and both test suites run.
 Adding a feature to one SDK means adding its case to the contract first.
 
 The copy in each repo is vendored rather than fetched at test time, so the
@@ -21,9 +21,9 @@ Anything outside it matches only as long as someone remembers, which is not a
 guarantee at all.
 
 Writing that down is what surfaced the first breach. Through v1.5.1 the
-contract covered wire-facing behaviour only — decision parsing, redaction
+contract covered wire-facing behaviour only, decision parsing, redaction
 enforcement, message conversion per provider, the blocked-error shape, the
-request payload — and said nothing about what auto-instrumentation reports
+request payload, and said nothing about what auto-instrumentation reports
 about itself. That surface had already drifted: this SDK named the Bedrock
 patch `boto3-bedrock` where Node named it `bedrock`, so the same health check
 answered differently per language. Nothing failed, because nothing checked.

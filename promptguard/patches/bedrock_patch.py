@@ -150,7 +150,7 @@ def _apply_redaction(args: tuple, kwargs: dict, redacted: list[dict[str, str]]) 
     """Write redacted content back into the Bedrock request.
 
     ``api_params`` is passed positionally (``_make_api_call(self, op, params)``)
-    so we mutate it in place — that same dict object is what the wrapped
+    so we mutate it in place, that same dict object is what the wrapped
     original call receives.  Returns ``kwargs`` unchanged on success, or
     ``None`` when the request shape cannot be rewritten so ``_base``
     escalates the redact decision to a block instead of forwarding the
@@ -222,7 +222,7 @@ def _redact_body_dict(
     """Redact a parsed request body in place, mirroring extraction order.
 
     Returns False when the body has no shape we know how to rewrite, or when
-    an entry that emitted a guard message has no redacted counterpart —
+    an entry that emitted a guard message has no redacted counterpart,
     forwarding it would leak the exact content the guard flagged.
     """
 

@@ -1,7 +1,7 @@
 """The Gemini SDK people actually install.
 
-We hooked ``google-generativeai``. Google deprecated it when Gemini 2.0 shipped
-— its own PyPI description opens with "[Deprecated]" — and replaced it with
+We hooked ``google-generativeai``. Google deprecated it when Gemini 2.0 shipped,
+its own PyPI description opens with "[Deprecated]", and replaced it with
 ``google-genai``, a different import path entirely. So anyone on the current SDK
 called ``promptguard.init()``, got no error, and was unprotected.
 
@@ -12,7 +12,7 @@ other way.
 Two things this patch can do that the legacy one could not, and both are tested
 below because both are the reason the new signature matters:
 
-* ``config.system_instruction`` is scanned — the highest-authority text in the
+* ``config.system_instruction`` is scanned, the highest-authority text in the
   request, and not part of ``contents`` at all.
 * Redaction can rewrite the prompt, because ``contents`` is keyword-only here.
   The legacy patch has to escalate a redact decision to a block instead.
@@ -57,7 +57,7 @@ class TestEverythingScannableIsRead:
             },
         )
         assert {"role": "system", "content": "SYS"} in messages, (
-            "the system instruction lives in `config`, not `contents` — missing it "
+            "the system instruction lives in `config`, not `contents`: missing it "
             "leaves the highest-authority text in the request unscanned"
         )
 
@@ -135,7 +135,7 @@ class TestApplyAndRevert:
         try:
             for (cls, meth), original in before.items():
                 assert getattr(getattr(genai_models, cls), meth) is not original, (
-                    f"{cls}.{meth} was not wrapped — streaming and async surfaces "
+                    f"{cls}.{meth} was not wrapped, streaming and async surfaces "
                     "matter as much as the plain one; a customer who passes "
                     "stream=True must not silently stop being scanned"
                 )

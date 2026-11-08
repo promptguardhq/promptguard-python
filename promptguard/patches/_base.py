@@ -88,7 +88,7 @@ def _handle_pre_scan_decision(
     if decision.redacted:
         redacted_messages = decision.redacted_messages or []
         # A redacted_messages list SHORTER than the scanned guard messages
-        # would leave the unmatched trailing messages unredacted — the
+        # would leave the unmatched trailing messages unredacted: the
         # per-SDK redaction handlers keep original content for guard indices
         # past the end of the list.  Treat a partial list like a missing one.
         is_partial = len(redacted_messages) < len(guard_messages)
@@ -99,7 +99,7 @@ def _handle_pre_scan_decision(
                 # rewritten safely; that escalates to a block below.
                 new_kwargs = apply_redaction(args, kwargs, redacted_messages)
             if new_kwargs is None:
-                # Fail safe: the redact decision cannot be honored — the
+                # Fail safe: the redact decision cannot be honored: the
                 # Guard API returned no/empty/partial redacted messages, this
                 # SDK has no redaction handler, or the handler could not
                 # rewrite the message shape.  Forwarding the ORIGINAL

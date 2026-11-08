@@ -103,7 +103,7 @@ class PromptGuardCallbackHandler(_BaseCallbackHandler):
             ``thread_id`` (or ``session_id`` / ``conversation_id``) in its
             metadata always wins. Without either, no session id is sent.
         scan_responses:
-            Defaults to ``True`` here — unlike ``promptguard.init()`` which
+            Defaults to ``True`` here, unlike ``promptguard.init()`` which
             defaults to ``False``. The callback already receives ``on_llm_end``
             events for free, so scanning responses adds no extra call surface
             and richer coverage is the expected behaviour when a user opts into
@@ -560,8 +560,8 @@ class PromptGuardRunnable:
 
     Redaction is applied in place for ``str``, ``dict`` (the first recognized
     text field), and ``list[dict]`` message inputs. For any other value type a
-    ``redact`` decision cannot be safely rewritten, so — mirroring the callback
-    posture — enforce mode blocks and monitor mode warns and passes through.
+    ``redact`` decision cannot be safely rewritten, so, mirroring the callback
+    posture, enforce mode blocks and monitor mode warns and passes through.
     """
 
     def __init__(
@@ -592,7 +592,7 @@ class PromptGuardRunnable:
     def guard_value(self, value: Any, config: dict[str, Any] | None = None) -> Any:
         """Scan ``value``; return it (possibly redacted) or raise on a block.
 
-        This is the plain callable behind :meth:`as_runnable` — usable directly
+        This is the plain callable behind :meth:`as_runnable`: usable directly
         (e.g. in a ``RunnableLambda`` you build yourself) without importing
         LangChain. ``config`` is the call's ``RunnableConfig``, which
         ``RunnableLambda`` passes in: its ``configurable["thread_id"]`` -- or a
@@ -690,7 +690,7 @@ class PromptGuardRunnable:
         if redacted is not _UNREDACTABLE:
             return redacted
 
-        # Could not rewrite the value in place — fail safe rather than forward
+        # Could not rewrite the value in place: fail safe rather than forward
         # the flagged content unredacted.
         logger.error(
             "PromptGuard: redaction required but the %s value could not be "

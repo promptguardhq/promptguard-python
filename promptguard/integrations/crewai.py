@@ -160,8 +160,8 @@ class PromptGuardGuardrail:
         """Handle a redact decision on an output-direction scan.
 
         A CrewAI after/task callback observes the finished output but cannot
-        safely rewrite the crew's result in place, so — mirroring the
-        langchain/llamaindex posture — in enforce mode we block rather than let
+        safely rewrite the crew's result in place, so, mirroring the
+        langchain/llamaindex posture, in enforce mode we block rather than let
         unredacted content through; in monitor mode we warn.
         """
         if decision is None or not decision.redacted:
@@ -258,7 +258,7 @@ def secure_tool(
                 if decision.redacted:
                     # A wrapped tool has no safe way to rewrite its own args, so
                     # in enforce mode we block rather than forward the original
-                    # (unredacted) input — mirroring _base._handle_pre_scan_decision.
+                    # (unredacted) input: mirroring _base._handle_pre_scan_decision.
                     if mode == "enforce":
                         logger.error(
                             "PromptGuard: redaction required for tool %s but the "

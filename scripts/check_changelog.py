@@ -48,7 +48,7 @@ def main() -> int:
     if not re.search(rf"^##\s*\[{re.escape(version)}\]", text, re.M):
         print(
             f"error: no CHANGELOG entry for {version}.\n"
-            f"       Add a '## [{version}] — YYYY-MM-DD' section to {CHANGELOG.name} "
+            f"       Add a '## [{version}] - YYYY-MM-DD' section to {CHANGELOG.name} "
             "describing what changed for the people installing it.\n"
             "       Reconstructing this after the fact produces a list of commit "
             "subjects, which is what the pre-1.11.1 entries already are.",

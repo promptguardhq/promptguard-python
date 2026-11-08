@@ -2,7 +2,7 @@
 Direct tests for the shared patch wrappers (``wrap_sync`` / ``wrap_async``).
 
 These exercise the block/redact/allow decision flow, monitor vs enforce,
-fail_open / fail_closed, and response scanning with a stubbed guard client —
+fail_open / fail_closed, and response scanning with a stubbed guard client,
 the security-critical logic that previously had no direct coverage.
 """
 

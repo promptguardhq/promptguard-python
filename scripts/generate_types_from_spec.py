@@ -2,7 +2,7 @@
 """
 Generate Python type definitions from the OpenAPI developer spec.
 
-Output goes to promptguard/generated/api_types.py — ONLY types, no runtime code.
+Output goes to promptguard/generated/api_types.py, ONLY types, no runtime code.
 Hand-written client code in promptguard/ is never touched.
 
 Usage:
@@ -118,7 +118,7 @@ def _alias_block(name: str, target: str, description: object | None) -> str:
 def generate_typed_dict(name: str, schema: dict) -> str:
     """Render one schema as a single top-level block.
 
-    The block carries no leading or trailing blank lines — ``render_module``
+    The block carries no leading or trailing blank lines, ``render_module``
     owns the separation between blocks.
     """
     description = schema.get("description")
@@ -136,7 +136,7 @@ def generate_typed_dict(name: str, schema: dict) -> str:
 
     lines = [f"class {name}(TypedDict{total}):"]
     if description:
-        # The class docstring — the first statement *inside* the body. Emitted
+        # The class docstring: the first statement *inside* the body. Emitted
         # above the class it would be a bare module-level string that documents
         # nothing and leaves the file unformattable.
         lines.append(f'    """{_sanitize_docstring(description)}"""')
@@ -145,7 +145,7 @@ def generate_typed_dict(name: str, schema: dict) -> str:
 
     emitted = False
     for prop_name, prop_def in props.items():
-        # Reject property names that aren't plain identifiers — a malicious or
+        # Reject property names that aren't plain identifiers: a malicious or
         # malformed spec must not inject code via an attribute name.
         if not _is_identifier(prop_name):
             sys.stderr.write(f"Skipping invalid property name in {name!r}: {prop_name!r}\n")
@@ -221,11 +221,11 @@ def render_module(spec: dict) -> str:
     header = textwrap.dedent(f"""\
         \"\"\"
         Auto-generated from OpenAPI spec (v{version}).
-        DO NOT EDIT — regenerate with: python scripts/generate_types_from_spec.py
+        DO NOT EDIT. Regenerate with: python scripts/generate_types_from_spec.py
 
         These are type-only definitions. Custom client logic lives in
         promptguard/guard.py, promptguard/client.py, promptguard/patches/,
-        and promptguard/integrations/ — those files are never modified
+        and promptguard/integrations/, those files are never modified
         by this generator.
         \"\"\"
 

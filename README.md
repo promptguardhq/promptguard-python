@@ -23,7 +23,7 @@ Get a free API key at [app.promptguard.co](https://app.promptguard.co).
 
 > **The SDK reads `PROMPTGUARD_API_KEY` from the environment; it does not auto-load `.env`.** Use [python-dotenv](https://pypi.org/project/python-dotenv/) (call `load_dotenv()` before constructing the client) if you keep secrets in a `.env` file.
 
-> **PromptGuard fails open by default** — if the Guard API is unavailable, calls proceed *unscanned* so your app stays up. Set `fail_open=False` to block (fail closed) on a Guard outage instead.
+> **PromptGuard fails open by default**, if the Guard API is unavailable, calls proceed *unscanned* so your app stays up. Set `fail_open=False` to block (fail closed) on a Guard outage instead.
 
 ## Two Ways to Secure Your App
 
@@ -62,12 +62,12 @@ response = client.chat.completions.create(
 
 - `openai`: `chat.completions.create()`, `chat.completions.parse()` (when the installed SDK exposes it), and `responses.create()` (when the installed SDK ships the Responses API). The Responses patch scans the `instructions` param plus string or message-item `input` forms; exotic input items (function-call outputs, reasoning items) are not scanned.
 - `anthropic`: `messages.create()` (including the separate `system` param). Text and `tool_result` content blocks are scanned (tool results are the canonical indirect-injection channel); other block types (images, `tool_use` inputs, thinking) are not.
-- `google-genai` (Google's current SDK): `models.generate_content()` and `generate_content_stream()`, sync and async. The `config.system_instruction` system prompt is scanned, and so are tool-call arguments, function responses and code-execution output — not just plain text parts. Because `contents` is keyword-only in this SDK, a `redact` decision rewrites the prompt rather than escalating to a block.
+- `google-genai` (Google's current SDK): `models.generate_content()` and `generate_content_stream()`, sync and async. The `config.system_instruction` system prompt is scanned, and so are tool-call arguments, function responses and code-execution output, not just plain text parts. Because `contents` is keyword-only in this SDK, a `redact` decision rewrites the prompt rather than escalating to a block.
 - `google-generativeai` (**deprecated by Google** when Gemini 2.0 shipped; still supported because customers are still on it): `GenerativeModel.generate_content()` / `generate_content_async()`. `redact` escalates to a block here, because `contents` is positional and cannot be safely rewritten.
 - `cohere`: `Client.chat()` / `ClientV2.chat()` (v1 `preamble`/`message`/`chat_history` and v2 `messages`; the v1 `preamble` is scanned as a system message).
 - `boto3` (Bedrock Runtime): `invoke_model` and `converse` (via `_make_api_call`).
 
-Calls outside these surfaces — embeddings, audio, images, batches, fine-tuning, assistants, and other endpoints — are **not** scanned.
+Calls outside these surfaces, embeddings, audio, images, batches, fine-tuning, assistants, and other endpoints, are **not** scanned.
 
 **Modes:**
 
@@ -118,7 +118,7 @@ assert "openai" in promptguard.patched_sdks()  # the OpenAI SDK was patched
 
 `instrumentation_report()` gives the same facts as data: `patched`,
 `detected_unpatched` (installed provider libraries nothing hooked), `middleware`
-(request-edge middleware alive in this process, e.g. `["fastapi"]` — see
+(request-edge middleware alive in this process, e.g. `["fastapi"]`: see
 [FastAPI / ASGI middleware](#fastapi--asgi-middleware)) and `advice_url`.
 
 ### Confirming protection is actually live
@@ -126,7 +126,7 @@ assert "openai" in promptguard.patched_sdks()  # the OpenAI SDK was patched
 `init()` returning without an exception does not mean anything is being scanned.
 PromptGuard **fails open**, so a rejected API key, an unreachable Guard API, or a
 provider SDK we never hooked all leave you with an application that runs
-perfectly and blocks nothing. Each of those logs a warning — which helps only if
+perfectly and blocks nothing. Each of those logs a warning, which helps only if
 someone is reading the log.
 
 `verify()` is the positive check. It makes the real calls and reports what came
@@ -158,8 +158,8 @@ your process) and no `warn` status in its JSON output, only pass/fail counts.
 
 Each check reports `pass`, `warn` or `fail`. **Only a `fail` clears `ok`.** A
 request that never completed is a failure; a request that completed and came
-back permissive — an injection that was not blocked, a PII probe with nothing
-detected — is a warning, because a monitor-mode project legitimately behaves that
+back permissive, an injection that was not blocked, a PII probe with nothing
+detected, is a warning, because a monitor-mode project legitimately behaves that
 way. Warnings are still the first thing to read before trusting a setup.
 
 `verify()` never raises for a failed check, so one call reports every problem
@@ -168,7 +168,7 @@ supplied at all.
 
 > **Each call makes two real, billed requests.** The probes go through the same
 > endpoints as your production traffic, so every `verify()` writes two rows to
-> your security events — the injection probe among them, which shows up in your
+> your security events, the injection probe among them, which shows up in your
 > dashboard and analytics as a genuine prompt-injection attempt and will trigger
 > any alert you have configured on injection. Both requests count against your
 > plan's quota. That is fine on deploy or at the start of a demo; calling it on
@@ -206,7 +206,7 @@ The proxy client returns **plain OpenAI-compatible dicts** (the raw JSON body),
 not the SDK's typed response objects. So `response.choices[0].message.content`
 becomes `response["choices"][0]["message"]["content"]`. If you need the native
 response objects (`.choices[0].message.content`) preserved, use **Option 1
-auto-instrumentation** instead — it patches the real OpenAI/Anthropic/… client
+auto-instrumentation** instead, it patches the real OpenAI/Anthropic/… client
 in place, so their return types are unchanged and only the pre-flight scan is
 added.
 
@@ -391,13 +391,13 @@ The body is read by its `Content-Type`:
 | `multipart/form-data`, binary and other media | **not scanned** (a known gap: a prompt sent as a multipart field reaches your route unscanned) |
 
 **Paths.** `paths` and `exclude_paths` are prefixes matched on whole segments of
-the path your app's routes see — the request path less any `root_path`, the
+the path your app's routes see, the request path less any `root_path`, the
 way Starlette routes it, so they work unchanged behind a proxy prefix or in a
 mounted app. `"/v1/chat"` covers `/v1/chat` and `/v1/chat/completions`, but not
 `/v1/chatter`. An exclusion wins over `paths`, and an excluded request's body is
 never read. `paths=None` (the default) scans every path; `paths=[]` is an error.
 
-**The body.** It is buffered — including a chunked or streamed one — scanned
+**The body.** It is buffered, including a chunked or streamed one, scanned
 whole, and replayed to your app byte for byte (still compressed, if it was).
 The buffer is capped at `max_body_bytes` (default `DEFAULT_MAX_BODY_BYTES`),
 raw and decompressed, so a decompression bomb is caught. A body over the cap
@@ -437,8 +437,8 @@ A refusal uses the platform's error envelope:
 }
 ```
 
-**When the Guard API cannot answer** — a network error, a timeout, a `5xx` or a
-`429` — the request goes through unscanned (fail-open, the SDK default) and a
+**When the Guard API cannot answer**: a network error, a timeout, a `5xx` or a
+`429`: the request goes through unscanned (fail-open, the SDK default) and a
 `WARNING` is logged on the `promptguard` logger with
 `extra={"promptguard_event": "guard_unavailable_fail_open", "path": ...}`, so
 you can alert on it. With `fail_open=False` the request is answered `503`, code
@@ -522,7 +522,7 @@ curl -X POST https://api.promptguard.co/api/v1/guard \
   }'
 ```
 
-> Authenticate with the `X-API-Key` header — this is the canonical header used by the Guard API and every SDK. There is no `Authorization: Bearer` scheme.
+> Authenticate with the `X-API-Key` header, this is the canonical header used by the Guard API and every SDK. There is no `Authorization: Bearer` scheme.
 
 ## Security Scanning
 
@@ -537,7 +537,7 @@ if result["blocked"]:
     print(f"Threat detected: {result['reason']}")
 ```
 
-> **Two scan surfaces — object vs dict.** There are two ways to scan content and
+> **Two scan surfaces, object vs dict.** There are two ways to scan content and
 > they return **different shapes**:
 >
 > | Call | Returns | Access |
@@ -565,7 +565,7 @@ unchanged.
 ## Agent Tool Validation
 
 The `agent` namespace validates individual agent tool calls (arguments) before
-they execute — useful for guarding tool-using agents:
+they execute, useful for guarding tool-using agents:
 
 ```python
 result = pg.agent.validate_tool(
@@ -675,7 +675,7 @@ pg = PromptGuard(config=config)
 
 ```bash
 export PROMPTGUARD_API_KEY="pg_live_xxx"
-# Optional — only override if pointing at a self-hosted/staging deployment.
+# Optional: only override if pointing at a self-hosted/staging deployment.
 # Leave unset to use the default (https://api.promptguard.co/api/v1/proxy).
 export PROMPTGUARD_BASE_URL="https://api.promptguard.co/api/v1"
 ```
@@ -694,7 +694,7 @@ import promptguard
 
 promptguard.init(api_key="pg_live_xxx")
 
-# Use your real LLM client as usual — it is patched in place.
+# Use your real LLM client as usual: it is patched in place.
 from openai import OpenAI
 
 client = OpenAI()
@@ -710,7 +710,7 @@ except PromptGuardBlockedError as e:
 ```
 
 In **proxy mode**, the client raises `PromptGuardError`, which carries structured
-fields you can branch on — `.code`, `.status_code`, `.upgrade_url`,
+fields you can branch on, `.code`, `.status_code`, `.upgrade_url`,
 `.current_plan`, `.requests_used`, and `.requests_limit`:
 
 ```python

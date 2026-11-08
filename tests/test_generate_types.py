@@ -1,5 +1,5 @@
 """
-Tests for scripts/generate_types_from_spec.py — the two-layer defence against
+Tests for scripts/generate_types_from_spec.py, the two-layer defence against
 a hostile OpenAPI spec injecting module-level code through a ``$ref`` (or an
 ``anyOf`` / ``items`` ``$ref``) segment, and the shape of the module it emits.
 

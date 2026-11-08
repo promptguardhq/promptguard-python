@@ -122,7 +122,7 @@ class GuardClient:
     swallows errors; callers (patches, integrations) decide whether
     to fail open or closed based on configuration.
 
-    ``timeout`` defaults to ``10.0`` seconds — the Guard scan is a fast,
+    ``timeout`` defaults to ``10.0`` seconds, the Guard scan is a fast,
     standalone call.  (The proxy client / ``Config`` default is ``30.0`` because
     it fronts the full upstream LLM call.)  ``api_key`` / ``base_url`` fall back
     to ``PROMPTGUARD_API_KEY`` / ``PROMPTGUARD_BASE_URL`` when omitted.
@@ -145,7 +145,7 @@ class GuardClient:
         # An httpx.AsyncClient is bound to the event loop it was created on,
         # so keep one client per live loop.  Two loops scanning concurrently
         # (e.g. threads each running asyncio.run) each get their own client
-        # instead of displacing — and killing in-flight scans of — the other.
+        # instead of displacing, and killing in-flight scans of: the other.
         # Weak keys let a garbage-collected loop drop its entry; the paired
         # ``weakref.finalize`` best-effort closes the evicted client.
         self._async_clients: weakref.WeakKeyDictionary[

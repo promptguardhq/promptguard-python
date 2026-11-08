@@ -48,7 +48,7 @@ def verify(
 ) -> dict[str, Any]:
     """Run the integration checks and return what happened.
 
-    Credentials resolve exactly as they do everywhere else — explicit argument,
+    Credentials resolve exactly as they do everywhere else, explicit argument,
     then ``PROMPTGUARD_API_KEY`` / ``PROMPTGUARD_BASE_URL`` from the
     environment.
 
@@ -62,7 +62,7 @@ def verify(
     Never raises for a failed check: a check that raised would be useless in the
     place this is most needed, which is a CI step or a pre-flight script that
     wants to report *all* the problems at once.  A missing API key is the one
-    exception — that is a caller error, not a finding, and it raises
+    exception, that is a caller error, not a finding, and it raises
     ``ValueError`` like the rest of the SDK.
 
     Returns a dict with:
@@ -81,7 +81,7 @@ def verify(
         self-describing.
 
     A **warn** means the request worked but the answer was not what a protected
-    setup should give — an injection that came back allowed, or a PII sample
+    setup should give, an injection that came back allowed, or a PII sample
     with nothing detected.  That is a policy or configuration question rather
     than a broken integration, which is why it does not clear ``ok``; it is
     still the thing to look at before trusting the setup.
@@ -97,12 +97,12 @@ def verify(
         retry_delay=retry_delay,
     )
     # The client normalizes the base URL (it appends the ``/proxy`` suffix), so
-    # report what was actually called rather than what was passed in — a report
+    # report what was actually called rather than what was passed in: a report
     # naming a URL nobody requested sends the reader to the wrong place.
     url = client.config.base_url
     try:
-        # One scan call answers three questions — is the host reachable, does
-        # the key authenticate, does detection fire — so verify() costs two
+        # One scan call answers three questions: is the host reachable, does
+        # the key authenticate, does detection fire, so verify() costs two
         # requests rather than four.
         scan_error: Exception | None = None
         scan_result: dict[str, Any] = {}

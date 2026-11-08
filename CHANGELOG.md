@@ -8,12 +8,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 `Unreleased` holds work that is merged but not yet published. Move entries into
-a dated version section when a release goes out — an `Unreleased` block that
+a dated version section when a release goes out, an `Unreleased` block that
 survives three releases is a changelog nobody is maintaining.
 
 ## [Unreleased]
 
-## [2.5.0] — 2026-11-03
+## [2.5.0] - 2026-11-03
 
 Generated types and packaging metadata only: no runtime behaviour changed.
 Additive in `promptguard.generated.api_types` except three agent-registration
@@ -70,7 +70,7 @@ types, removed with their endpoints (see Removed).
   langsmith's `asyncio.iscoroutinefunction` deprecation ignored under Python
   3.14 (#49). Nothing in the installed package is affected.
 
-## [2.4.2] — 2026-10-23
+## [2.4.2] - 2026-10-23
 
 ### Changed
 
@@ -80,7 +80,7 @@ types, removed with their endpoints (see Removed).
   flagged threat in its detector's warn band. Types only; no change to how the
   client decides.
 
-## [2.4.1] — 2026-10-18
+## [2.4.1] - 2026-10-18
 
 ### Fixed
 
@@ -90,7 +90,7 @@ types, removed with their endpoints (see Removed).
   there. The bound is now the middleware's own (`MAX_JSON_DEPTH`), and a deeper
   body gets the same `400 invalid_json` on 3.10 through 3.14. CI now tests 3.14.
 
-## [2.4.0] — 2026-10-18
+## [2.4.0] - 2026-10-18
 
 ### Fixed
 
@@ -180,7 +180,7 @@ types, removed with their endpoints (see Removed).
   This is cross-SDK contract v1.7.0, which adds the key to the report;
   `verify()` counts a live middleware as coverage.
 
-## [2.3.0] — 2026-10-10
+## [2.3.0] - 2026-10-10
 
 ### Added
 
@@ -213,7 +213,7 @@ changed. All of it lives in `promptguard.generated.api_types`.
   and the type sync formats what it generates (#42, #43, #44). Nothing in the
   installed package is affected.
 
-## [2.2.1] — 2026-09-18
+## [2.2.1] - 2026-09-18
 
 ### Changed
 
@@ -221,14 +221,14 @@ changed. All of it lives in `promptguard.generated.api_types`.
   (#40). Types only: no runtime behaviour changes. Published so the package on
   PyPI matches the contract the API now serves.
 
-## [2.2.0] — 2026-09-06
+## [2.2.0] - 2026-09-06
 
 ### Added
 
 - **`tokenize` is a valid `pii_detection.mode` in the generated types.** The
   `PiiDetectionConfig` mode literal listed `redact`, `mask` and `block` only, so
-  a type-checked project passing `tokenize` — the reversible mode the API has
-  always accepted — failed at the type checker rather than at the API. The same
+  a type-checked project passing `tokenize`: the reversible mode the API has
+  always accepted, failed at the type checker rather than at the API. The same
   gap was fixed in the CLI's `policy apply` in cli-v2.1.0.
 - **`multi_turn_drift`** appears on the detector-configuration type.
 
@@ -247,7 +247,7 @@ changed. All of it lives in `promptguard.generated.api_types`.
   still reachable as `promptguard.generated.api_types.ApiKeyFullResponse`, so a
   project that imported it directly will need to drop it.
 
-## [2.1.0] — 2026-08-30
+## [2.1.0] - 2026-08-30
 
 ### Added
 
@@ -257,9 +257,9 @@ changed. All of it lives in `promptguard.generated.api_types`.
   configuring guardrails now has types for the shape the API accepts instead of
   hand-writing dicts.
 
-Additive only — nothing in 2.0.0 changed behaviour or signature.
+Additive only: nothing in 2.0.0 changed behaviour or signature.
 
-## [2.0.0] — 2026-08-26
+## [2.0.0] - 2026-08-26
 
 What each removal means for your code, and what to use instead: [Upgrade to SDK and CLI 2.0](https://docs.promptguard.co/releases/sdk-v2-upgrade).
 
@@ -267,40 +267,40 @@ What each removal means for your code, and what to use instead: [Upgrade to SDK 
 
 - **The red team client was unreachable for every customer.** Every method on
   `client.redteam` targeted `/internal/redteam`, which is the platform-admin
-  plane and rejects an API key outright — so the namespace could not have
+  plane and rejects an API key outright, so the namespace could not have
   worked for anyone holding a `pg_live_` key, whatever they did. It now targets
   the customer-facing `/api/v1/security-testing`.
 
 ### Removed
 
-- **BREAKING — three namespaces that could only ever 404 are gone**, in both
+- **BREAKING: three namespaces that could only ever 404 are gone**, in both
   the sync and async clients: `completions`, `embeddings` and `scrape`, along
   with `redteam.run_autonomous()` and `redteam.intelligence_stats()`. Nothing
-  that worked has been taken away — there was never a working implementation
-  behind them — but removing public attributes from a published client is a
+  that worked has been taken away, there was never a working implementation
+  behind them, but removing public attributes from a published client is a
   backwards-incompatible change, so it takes a major version.
 
   There is no replacement, because there was nothing to replace. For chat
   traffic, use `client.chat.completions.create(...)`, which is unchanged.
 
-## [1.13.0] — 2026-08-16
+## [1.13.0] - 2026-08-16
 
 ### Added
 
-- **`promptguard.verify()` — a positive check that protection is actually
+- **`promptguard.verify()`: a positive check that protection is actually
   live.** `init()` returning cleanly has never meant anything is being scanned:
   the SDK fails open, so a rejected API key, an unreachable Guard API or a
   provider SDK we never hooked all leave an application that runs perfectly and
   blocks nothing. Each of those already logged a warning, but a warning in a log
   nobody tails is indistinguishable from silence. `verify()` makes the real
-  calls — reachability, authentication, a live injection probe, a PII probe —
+  calls, reachability, authentication, a live injection probe, a PII probe,
   and returns what came back, so a deployment can assert it instead of assuming
   it: `assert promptguard.verify()["ok"]`. The checks and their names mirror
   `promptguard verify` in the CLI so the two agree on what "working" means. It
   never raises for a failed check, so a CI step sees every problem at once
   rather than only the first.
 
-## [1.12.0] — 2026-08-11
+## [1.12.0] - 2026-08-11
 
 ### Fixed
 
@@ -319,7 +319,7 @@ What each removal means for your code, and what to use instead: [Upgrade to SDK 
   `openai` and `google-genai` installed saw a healthy startup and no mention of
   their unscanned Gemini traffic. Each patch module declares what it detects,
   and anything installed-but-unhooked is warned about by name with the fix.
-- `instrumentation_report()` — the same facts as data, so coverage can be
+- `instrumentation_report()`: the same facts as data, so coverage can be
   asserted in your own CI rather than read from startup logs:
   `assert promptguard.instrumentation_report()["detected_unpatched"] == []`.
 
@@ -330,73 +330,73 @@ What each removal means for your code, and what to use instead: [Upgrade to SDK 
      written when the release is cut -- scripts/check_changelog.py fails the
      release if the version being published has no section. -->
 
-## [1.11.1] — 2026-08-03
+## [1.11.1] - 2026-08-03
 
 ### Changed
 
-- v1.11.1 — dependency updates
+- v1.11.1, dependency updates
 
-## [1.11.0] — 2026-07-13
+## [1.11.0] - 2026-07-13
 
 ### Changed
 
 - chore(release): bump version to 1.11.0 (LangChain + LlamaIndex adapters) (#19)
 
-## [1.10.0] — 2026-07-12
+## [1.10.0] - 2026-07-12
 
 ### Changed
 
 - chore(release): 1.10.0
 
-## [1.9.0] — 2026-06-01
+## [1.9.0] - 2026-06-01
 
 ### Changed
 
-- release: v1.9.0 — proxy-suffix auto-fix, retry controls, SecurityScanResult (#14)
+- release: v1.9.0, proxy-suffix auto-fix, retry controls, SecurityScanResult (#14)
 
-## [1.8.1] — 2026-04-19
+## [1.8.1] - 2026-04-19
 
 ### Changed
 
 - chore(release): 1.8.1 (#7)
 
-## [1.8.0] — 2026-04-11
+## [1.8.0] - 2026-04-11
 
 ### Changed
 
 - chore: bump version to 1.8.0
 
-## [1.7.1] — 2026-04-10
+## [1.7.1] - 2026-04-10
 
 ### Changed
 
 - chore: update model references from gpt-4o to gpt-5-nano and bump to v1.7.1
 
-## [1.7.0] — 2026-04-07
+## [1.7.0] - 2026-04-07
 
 ### Changed
 
 - feat: add API contract testing, OpenAPI validation, and quota error handling
 
-## [1.6.0] — 2026-04-06
+## [1.6.0] - 2026-04-06
 
 ### Changed
 
 - feat: bump version to 1.6.0
 
-## [1.5.3] — 2026-04-05
+## [1.5.3] - 2026-04-05
 
 ### Changed
 
 - chore: bump version to 1.5.3
 
-## [1.5.2] — 2026-03-25
+## [1.5.2] - 2026-03-25
 
 ### Changed
 
 - v1.5.2: clean up deprecated integration code
 
-## [1.5.1] — 2026-02-28
+## [1.5.1] - 2026-02-28
 
 ### Changed
 

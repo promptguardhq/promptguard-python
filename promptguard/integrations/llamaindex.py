@@ -63,7 +63,7 @@ class PromptGuardCallbackHandler:
             The Conversation this handler's scans belong to. LlamaIndex events
             name none, so without it no session id is sent.
         scan_responses:
-            Defaults to ``True`` here — unlike ``promptguard.init()`` which
+            Defaults to ``True`` here, unlike ``promptguard.init()`` which
             defaults to ``False``. The callback already receives ``on_event_end``
             events for free, so scanning responses adds no extra call surface and
             richer coverage is the expected behaviour when opting into a
@@ -410,7 +410,7 @@ class PromptGuardQueryGuard:
         if redacted and isinstance(redacted[0].get("content"), str):
             return redacted[0]["content"]
 
-        # No usable redaction payload — fail safe rather than forward the
+        # No usable redaction payload: fail safe rather than forward the
         # flagged query unredacted.
         logger.error(
             "PromptGuard: redaction required but no redacted query was returned; "

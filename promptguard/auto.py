@@ -199,7 +199,7 @@ def patched_sdks() -> list[str]:
 
 def is_active() -> bool:
     """Return ``True`` when auto-instrumentation is initialised (a guard client
-    is installed). Note this is independent of whether any SDK was patchable —
+    is installed). Note this is independent of whether any SDK was patchable,
     use :func:`patched_sdks` to confirm specific SDKs are instrumented."""
     return _guard_client is not None
 

@@ -2,13 +2,13 @@
 
 `init()` used to warn only when it patched **nothing**. A customer with
 ``openai`` and ``google-genai`` installed got "patched SDKs: openai" at INFO and
-not one word about Gemini — so the partial case, which is the common case, was
+not one word about Gemini, so the partial case, which is the common case, was
 silent, and they had every reason to believe they were covered.
 
 That matters more here than anywhere else in the product. Auto-instrumentation
 works by rewriting a named function inside the customer's process, so it is
 inherently a finite list that goes stale every time a provider renames a
-package — which Google just did. We cannot win that race by being fast. We win
+package, which Google just did. We cannot win that race by being fast. We win
 it by never being quietly wrong about it: an unhooked library is named, and the
 advice points at the proxy, which is library-blind and always works.
 """
@@ -57,7 +57,7 @@ class TestDetection:
     def test_an_absent_library_is_not_reported(self, monkeypatch):
         """Silence about a provider the customer does not use is correct.
 
-        A report that names everything is as useless as one that names nothing —
+        A report that names everything is as useless as one that names nothing,
         people stop reading it, which is how the next real warning gets missed.
         """
         monkeypatch.setattr(

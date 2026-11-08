@@ -229,7 +229,7 @@ class TestBedrockRedaction:
 
     def test_non_dict_entry_does_not_misalign_converse_redaction(self):
         """Extraction skips non-dict entries; redaction must skip the same
-        entries instead of consuming a redacted index positionally —
+        entries instead of consuming a redacted index positionally,
         otherwise the entry AFTER the non-dict one keeps its ORIGINAL
         flagged content."""
         from promptguard.patches.bedrock_patch import (
@@ -601,7 +601,7 @@ class TestCohereRedaction:
 
     def test_v1_preamble_consumes_first_redacted_index(self):
         """The scanned preamble is guard index 0; history and message shift
-        by one — redaction must mirror that exactly."""
+        by one, redaction must mirror that exactly."""
         from promptguard.patches.cohere_patch import _apply_redaction, _to_guard_messages
 
         kwargs = {
