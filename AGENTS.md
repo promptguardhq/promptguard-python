@@ -74,7 +74,7 @@ and how to add a secret with its per-secret grant:
 [`ENVIRONMENT_VARIABLES.md` § CI/CD-only](https://github.com/promptguardhq/promptguard/blob/main/docs/04_engineering/reference/ENVIRONMENT_VARIABLES.md#cicd-only)
 in the platform repo.
 
-`.claude/settings.json` (committed) denies Claude Code reads of real `.env` files, and hand-edits of generated API types and the synced guard contract (regenerate them with the sync workflow's commands instead). Machine-only permissions go in `.claude/settings.local.json`.
+`.claude/settings.json` (committed) denies Claude Code reads of real `.env` files, and hand-edits of generated API types and the synced guard contract (regenerate them with the sync workflow's commands instead). It also turns on Claude Code's sandbox for Bash: network only to the hosts in `sandbox.network.allowedDomains`, writes only to the workspace and tool caches; a host a command needs that is not listed shows as a sandbox prompt, so add it there with the reason. Machine-only permissions go in `.claude/settings.local.json`.
 
 ## Agent skills
 

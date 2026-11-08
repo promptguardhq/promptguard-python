@@ -11,5 +11,64 @@
       "Edit(./tests/guard-contract.json)",
       "Edit(./tests/guard-contract.lock.json)"
     ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "enableWeakerNetworkIsolation": true,
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "*.github.com",
+        "*.githubusercontent.com",
+        "ghcr.io",
+        "*.googleapis.com",
+        "accounts.google.com",
+        "*.run.app",
+        "*.supabase.co",
+        "*.supabase.com",
+        "*.stripe.com",
+        "stripe.com",
+        "registry.npmjs.org",
+        "*.npmjs.org",
+        "registry.yarnpkg.com",
+        "pypi.org",
+        "*.pypi.org",
+        "files.pythonhosted.org",
+        "api.osv.dev",
+        "crates.io",
+        "*.crates.io",
+        "static.rust-lang.org",
+        "vercel.com",
+        "*.vercel.com",
+        "*.vercel.app",
+        "betterstack.com",
+        "*.betterstack.com",
+        "*.betteruptime.com",
+        "huggingface.co",
+        "*.huggingface.co",
+        "*.hf.co",
+        "promptguard.co",
+        "*.promptguard.co",
+        "update.code.visualstudio.com",
+        "*.vscode-cdn.net",
+        "openaipublic.blob.core.windows.net",
+        "localhost",
+        "127.0.0.1"
+      ],
+      "allowLocalBinding": true
+    },
+    "filesystem": {
+      "allowWrite": [
+        "~/Projects/promptguard-projects",
+        "~/.cache",
+        "~/Library/Caches",
+        "~/Library/pnpm",
+        "~/.npm",
+        "~/.cargo",
+        "~/.rustup",
+        "~/.config/gcloud",
+        "~/.config/gh"
+      ]
+    }
   }
 }
