@@ -35,6 +35,12 @@ The suite is fully mocked and offline. `pytest` turns warnings into errors and
 runs pytest-asyncio in strict mode, so every async test needs
 `@pytest.mark.asyncio`. Code must run on Python 3.10, the oldest CI leg.
 
+`tests/live/` is the exception: it drives the public client, `init()` and the
+Guard API against a real deployment (staging by default), so it is marked
+`live`, deselected by default and skipped without a key. Run it with
+`PROMPTGUARD_LIVE_API_KEY=<staging key> bash scripts/check.sh --live`
+(`PROMPTGUARD_LIVE_BASE_URL` changes the target).
+
 ## Coding standards
 
 - Type hints on every public function and method.

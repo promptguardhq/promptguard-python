@@ -159,6 +159,12 @@ line-ending = "lf"
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
+# tests/live/ calls a real deployment. Deselected here so `pytest tests/`, the
+# local gate and CI stay offline; run it with `pytest -m live tests/live`.
+addopts = ["-m", "not live"]
+markers = [
+    "live: calls a real PromptGuard API; needs PROMPTGUARD_LIVE_API_KEY",
+]
 # pytest-asyncio 1.4 warns while this is unset, and filterwarnings = error makes
 # that warning abort the run. "function" is the scope it will default to.
 asyncio_default_fixture_loop_scope = "function"
