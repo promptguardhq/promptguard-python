@@ -13,6 +13,19 @@ survives three releases is a changelog nobody is maintaining.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`SecurityScanResult` names the keys the API sends.** `security.scan()`
+  returns the API's response unchanged, which uses `threatType`, `eventId` and
+  `processingTimeMs`, plus `flagged` and `threshold`. The type promised a
+  `threat_type` key that was never present, so `result["threat_type"]` always
+  missed. It is now the generated `ScanResponse`, matching the Node SDK. Read
+  `result.get("threatType")`.
+- **`GuardClient` no longer leaks a socket per event loop.** Calling
+  `asyncio.run(guard.scan_async(...))` once per request left each loop's
+  connections open after the loop ended, because no other loop can close them.
+  The client now closes a loop's connections while that loop shuts down.
+
 ## [2.5.0] - 2026-11-03
 
 Generated types and packaging metadata only: no runtime behaviour changed.

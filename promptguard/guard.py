@@ -10,6 +10,7 @@ import asyncio
 import logging
 import threading
 import weakref
+from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
@@ -93,6 +94,32 @@ async def _silent_aclose(client: httpx.AsyncClient) -> None:
         logger.debug("Async Guard client close failed", exc_info=True)
 
 
+async def _close_when_loop_shuts_down(
+    owner: "weakref.ref[GuardClient]", loop_ref: "weakref.ref[asyncio.AbstractEventLoop]"
+) -> AsyncIterator[None]:
+    """Suspended until ``loop`` shuts down, then closes that loop's client on it.
+
+    An event loop finalizes the async generators it is running before it
+    closes: ``asyncio.run`` and ``asyncio.Runner`` call ``shutdown_asyncgens()``
+    while the loop still runs. That is the last moment the client's sockets,
+    which belong to that loop, can be closed cleanly; once the loop is closed
+    no other loop can close them. ``asyncio.run(guard.scan_async(...))`` per
+    request is the pattern that needs it.
+    """
+    try:
+        yield
+    finally:
+        guard, loop = owner(), loop_ref()
+        if guard is not None and loop is not None:
+            with guard._client_lock:
+                client = guard._async_clients.pop(loop, None)
+                # Drop this generator: it holds the loop (through the loop's
+                # asyncgen finalizer), so keeping it would keep the loop alive.
+                guard._loop_closers.pop(id(loop), None)
+            if client is not None:
+                await _silent_aclose(client)
+
+
 def _best_effort_close_orphan(client: httpx.AsyncClient) -> None:
     """Best-effort close of a client whose event loop is gone.
 
@@ -151,6 +178,13 @@ class GuardClient:
         self._async_clients: weakref.WeakKeyDictionary[
             asyncio.AbstractEventLoop, httpx.AsyncClient
         ] = weakref.WeakKeyDictionary()
+        # One suspended _close_when_loop_shuts_down generator per loop, keyed
+        # by id(loop). Each holds its loop strongly (the loop's asyncgen
+        # finalizer), so it must not be a value keyed weakly by that loop; it
+        # removes itself when the loop shuts down, and close() drops the rest.
+        # An id cannot be reused while its entry stands, because the entry
+        # keeps the loop alive.
+        self._loop_closers: dict[int, AsyncIterator[None]] = {}
         self._client_lock = threading.Lock()
 
     def _get_headers(self) -> dict[str, str]:
@@ -196,6 +230,22 @@ class GuardClient:
                     # client (closed by the httpx finalizer / GC).
                     logger.debug("Event loop is not weak-referenceable; client not cached")
         return client
+
+    async def _close_with_loop(self) -> None:
+        """Arrange for this loop's client to close when the loop shuts down."""
+        loop = asyncio.get_running_loop()
+        try:
+            loop_ref = weakref.ref(loop)
+        except TypeError:
+            return  # non-weakrefable loop: the uncached client path applies
+        with self._client_lock:
+            if id(loop) in self._loop_closers:
+                return
+            closer = _close_when_loop_shuts_down(weakref.ref(self), loop_ref)
+            self._loop_closers[id(loop)] = closer
+        # Advancing it once registers it with this loop (the asyncgen hooks)
+        # and parks it at its ``yield``.
+        await closer.__anext__()
 
     @staticmethod
     def _schedule_aclose(client: httpx.AsyncClient, loop: asyncio.AbstractEventLoop | None) -> None:
@@ -270,6 +320,7 @@ class GuardClient:
         """Asynchronous scan via the guard API."""
         payload = self._build_payload(messages, direction, model, context)
         client = self._ensure_async_client()
+        await self._close_with_loop()
         try:
             resp = await client.post(self._guard_url, json=payload, headers=self._get_headers())
         except Exception as exc:
@@ -322,10 +373,15 @@ class GuardClient:
     def _drain_async_clients(
         self,
     ) -> list[tuple[asyncio.AbstractEventLoop, httpx.AsyncClient]]:
-        """Atomically take ownership of every cached (loop, client) pair."""
+        """Atomically take ownership of every cached (loop, client) pair.
+
+        Also drops the loop-shutdown closers: their clients are being closed
+        here, and a closer left behind would keep its loop alive.
+        """
         with self._client_lock:
             items = list(self._async_clients.items())
             self._async_clients.clear()
+            self._loop_closers.clear()
         return items
 
     def _best_effort_close_async(

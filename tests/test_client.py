@@ -462,3 +462,13 @@ class TestRemovedNamespacesStayRemoved:
     def test_chat_completions_is_untouched(self):
         """`chat.completions` is a different thing and is very much alive."""
         assert hasattr(_make_sync_client().chat, "completions")
+
+
+def test_security_scan_result_names_the_keys_the_api_sends() -> None:
+    from typing import get_type_hints
+
+    from promptguard import SecurityScanResult
+
+    keys = set(get_type_hints(SecurityScanResult))
+    assert {"blocked", "decision", "threatType", "eventId", "flagged", "threshold"} <= keys
+    assert "threat_type" not in keys

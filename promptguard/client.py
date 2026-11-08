@@ -14,13 +14,14 @@ import time
 from collections.abc import AsyncIterator, Iterator
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from typing import Any, TypedDict, cast
+from typing import Any, cast
 from urllib.parse import quote, urlsplit, urlunsplit
 
 import httpx
 
 from promptguard._version import __version__
 from promptguard.config import Config
+from promptguard.generated.api_types import ScanResponse
 
 _SDK_LANG = "python"
 _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
@@ -56,19 +57,12 @@ class PromptGuardError(Exception):
         super().__init__(f"{code}: {message}")
 
 
-class SecurityScanResult(TypedDict, total=False):
-    """Result of a ``security.scan`` call.
-
-    Mirrors the Node SDK's ``SecurityScanResult`` so the documented keys are
-    discoverable.  Declared ``total=False`` because the API only includes
-    threat metadata when something is detected.
-    """
-
-    blocked: bool
-    decision: str  # "allow" | "block" | "redact"
-    reason: str
-    threat_type: str
-    confidence: float
+# The result of a ``security.scan`` call is the API's ``ScanResponse``, taken
+# from the generated types so its keys are the ones the API sends: camelCase
+# (``threatType``, ``eventId``, ``processingTimeMs``), as in the Node SDK, plus
+# ``flagged`` and ``threshold``. A hand-written copy here once promised a
+# ``threat_type`` key the API never sends.
+SecurityScanResult = ScanResponse
 
 
 # -- Shared helpers used by both sync and async clients ----------------------

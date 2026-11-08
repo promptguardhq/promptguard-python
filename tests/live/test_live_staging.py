@@ -86,7 +86,7 @@ def test_security_scan_flags_a_prompt_injection(client: PromptGuard) -> None:
     result = client.security.scan(INJECTION)
     _assert_scan_shape(result)
     assert result["blocked"] is True or result["decision"] != "allow", result
-    assert result.get("threat_type"), result
+    assert result.get("threatType"), result
 
 
 # -- GuardClient: the Guard API every patch and integration calls -------------
