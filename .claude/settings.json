@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(./**/.env)",
+      "Read(./**/.env.local)",
+      "Read(./**/.env.*.local)",
+      "Read(./**/.env.staging)",
+      "Read(./**/.env.production)",
+      "Edit(./promptguard/generated/**)",
+      "Edit(./tests/guard-contract.json)",
+      "Edit(./tests/guard-contract.lock.json)"
+    ]
+  }
+}

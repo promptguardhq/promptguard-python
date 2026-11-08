@@ -1,5 +1,9 @@
 # AGENTS.md
 
+| Owner | Last reviewed |
+|---|---|
+| @cto | 2026-11-09 |
+
 Python SDK for PromptGuard, published to PyPI as `promptguard-sdk`; the Node SDK
 (`promptguard-node`) is its deliberate mirror. Domain vocabulary lives in
 `CONTEXT.md`; layout, dependencies and tool config live in `pyproject.toml`.
@@ -63,6 +67,8 @@ identifiers, as variables (`vars.*`). A workflow that names any `secrets.*` but
 and how to add a secret with its per-secret grant:
 [`ENVIRONMENT_VARIABLES.md` § CI/CD-only](https://github.com/promptguardhq/promptguard/blob/main/docs/04_engineering/reference/ENVIRONMENT_VARIABLES.md#cicd-only)
 in the platform repo.
+
+`.claude/settings.json` (committed) denies Claude Code reads of real `.env` files, and hand-edits of generated API types and the synced guard contract (regenerate them with the sync workflow's commands instead). Machine-only permissions go in `.claude/settings.local.json`.
 
 ## Agent skills
 
