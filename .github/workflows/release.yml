@@ -38,9 +38,14 @@ jobs:
       - name: CHANGELOG has an entry for this version
         run: python scripts/check_changelog.py
 
+      # Derived from pyproject's [dev] extra, never restated, exactly as
+      # ci.yml does: a hardcoded pin here drifted to 0.15.20 while CI and the
+      # pre-commit hook moved on.
       - name: Lint
         run: |
-          pip install ruff==0.15.20
+          pin=$(python -c "import tomllib; print(next(d for d in tomllib.load(open('pyproject.toml','rb'))['project']['optional-dependencies']['dev'] if d.startswith('ruff')))")
+          echo "Installing $pin (pinned in pyproject [dev])"
+          pip install "$pin"
           ruff check .
           ruff format --check .
 
