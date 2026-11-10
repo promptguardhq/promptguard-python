@@ -13,6 +13,33 @@ survives three releases is a changelog nobody is maintaining.
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-11-10
+
+### Added
+
+- **Generated API types synced from the published spec.** All of it lives in
+  `promptguard.generated.api_types`.
+  - `ApiKeyResponse` gains `grants` (a list of the new `ApiKeyGrant`, with the
+    `KeyAccessGroup`, `KeyLevelGroup` and `Level` literals),
+    `monthly_request_cap` and `requests_this_month`.
+  - `CreateDeveloperApiKeyRequest`, which adds `monthly_request_cap` and
+    `rate_limit_per_minute` to the old request shape.
+  - The error a key's monthly request cap returns: `KeyRequestCapErrorDetail`
+    and `KeyRequestCapErrorEnvelope`.
+
+### Removed
+
+- **`CreateApiKeyRequest` is gone from the generated types**, replaced by
+  `CreateDeveloperApiKeyRequest`. Not a major bump, as in 2.5.0: the generated
+  module is type-only and not re-exported from `promptguard`. A project that
+  imported it from `promptguard.generated.api_types` directly will need the new
+  name.
+
+### Changed
+
+- The release workflow installs the ruff version pinned in `pyproject.toml`,
+  as CI does, instead of a hardcoded 0.15.20. Development only.
+
 ### Fixed
 
 - **`SecurityScanResult` names the keys the API sends.** `security.scan()`
