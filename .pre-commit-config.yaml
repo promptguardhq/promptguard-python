@@ -16,7 +16,7 @@ repos:
         stages: [pre-commit]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.9  # keep equal to the ruff==X pin in pyproject.toml [dev]; CI installs that pin
+    rev: v0.17.3  # keep equal to the ruff==X pin in pyproject.toml [dev]; CI installs that pin
     hooks:
       - id: ruff
         stages: [pre-commit]
