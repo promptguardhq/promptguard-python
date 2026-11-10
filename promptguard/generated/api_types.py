@@ -135,6 +135,13 @@ class ApiHealthResponse(TypedDict):
     timestamp: str
 
 
+class ApiKeyGrant(TypedDict):
+    """One resource group a key reaches, and how far. A single-action group (``KeyAccessGroup``) is always ``write``: Access. The two enums are the groups a key may hold, which the dashboard's picker is built from (#1111)."""
+
+    group: KeyAccessGroup | KeyLevelGroup
+    level: Level
+
+
 class ApiKeyResponse(TypedDict, total=False):
     id: str
     name: str
@@ -148,6 +155,9 @@ class ApiKeyResponse(TypedDict, total=False):
     expires_at: str | Any
     created_at: str
     rate_limit_per_minute: int | Any
+    grants: list[ApiKeyGrant]
+    monthly_request_cap: int | Any
+    requests_this_month: int
 
 
 class ApiKeyToggledResponse(TypedDict):
@@ -206,7 +216,7 @@ class AuditEventRecord(TypedDict):
     severity: str
     # `success`, `failure`, `denied` or `error`.
     outcome: str
-    # `user`, `api_key`, `service` or `system`.
+    # `user`, `api_key`, `service` or `system`; `assistant` or `mcp_client` when an Agent acted for the user named in `actor_id`.
     actor_type: str
     # Who did it: a user id, or null for the system.
     actor_id: str | Any
@@ -215,7 +225,7 @@ class AuditEventRecord(TypedDict):
     resource_id: str | Any
     description: str
     details: dict[str, Any]
-    # The entry's seal on its organization's tamper-evident chain.
+    # The entry's seal on its organization's hash chain: HMAC-SHA256 under the instance's audit key where one is configured, which a database edit cannot re-seal; plain SHA-256 otherwise, which detects only an edit made without database write access.
     integrity_hash: str | Any
     # Opens the audit log in its Organization.
     dashboard_url: str
@@ -249,19 +259,26 @@ class ContextDoc(TypedDict, total=False):
     metadata: dict[str, Any] | Any
 
 
-class CreateApiKeyRequest(TypedDict, total=False):
-    # API key name
-    name: str
-    project_id: str | Any
-    permissions: list[str]
-    expires_at: str | Any
-
-
 class CreateApiKeyResponse(TypedDict):
     key: str
     id: str
     name: str
     prefix: str
+
+
+class CreateDeveloperApiKeyRequest(TypedDict, total=False):
+    """A new API key, created with an API key."""
+
+    # API key name
+    name: str
+    project_id: str | Any
+    # Scopes: resource groups as '<group>:<level>' (for example 'scan:write', 'policies:read'), or the legacy 'proxy', 'manage' and 'read'. Empty is full access.
+    permissions: list[str]
+    expires_at: str | Any
+    # Requests the new key may make each calendar month (UTC), beside your Plan's quota; past it the key is refused with api_key_request_cap_exceeded until the first of next month. Omitted is no cap of its own.
+    monthly_request_cap: int | Any
+    # Requests per minute the new key may make, beside its Plan's limit; the stricter refuses. Omitted is no limit of its own.
+    rate_limit_per_minute: int | Any
 
 
 class CreateExceptionRequest(TypedDict, total=False):
@@ -524,7 +541,7 @@ class GuardRequest(TypedDict, total=False):
     images: list[str] | Any
     # A Shadow AI Device reporting an **Override**: the person sent a prompt the Device coached (a block that rested on one detector) anyway, with a reason. Sent with every message empty and nothing else to scan; any content is refused with 422. Recorded as an event with the decision `override`, its threat type and the reason, alerted on like a block and delivered to the SIEM, and not metered. The answer is `allow`: nothing was scanned.
     override: GuardOverride | Any
-    # What the calling Device's own masker caught before sending, as `{category, count}` pairs: never the values. `category` is one of the threat types this API returns (e.g. `api_key_leak`, `pii_leak`) and appears at most once; `count` is a positive integer. Any other key is rejected with 422. Recorded on this request's event, attributed to the Device, and shown in the fleet views; it does not change the decision. Optional; clients that omit it are unaffected.
+    # What the calling Device's own masker caught before sending, as `{category, count}` pairs, never the values. `category` is one of the threat types this API returns (e.g. `api_key_leak`, `pii_leak`) and appears at most once; `count` is a positive integer. Any other key is rejected with 422. Recorded on this request's event, attributed to the Device, and shown in the fleet views; it does not change the decision. Optional; clients that omit it are unaffected.
     device_findings: list[DeviceFinding] | Any
 
 
@@ -541,7 +558,7 @@ class GuardResponse(TypedDict, total=False):
     weighted_score: float | Any
     # Primary threat type detected
     threat_type: str | Any
-    # Redacted messages (only present when decision='redact'). Always the TEXT projection: a message sent as content blocks comes back as a string. Attachments are never rewritten: we do not re-encode a PDF with the secret removed, and returning one that looked redacted would be worse than returning none. A message listed in `unscanned` as `over_size_budget` was not read, so it comes back as its text, unredacted.
+    # Redacted messages (only present when decision='redact'). Always the TEXT projection: a message sent as content blocks comes back as a string. Attachments are never rewritten, we do not re-encode a PDF with the secret removed, and returning one that looked redacted would be worse than returning none. A message listed in `unscanned` as `over_size_budget` was not read, so it comes back as its text, unredacted.
     redacted_messages: list[GuardMessage] | Any
     # Detailed threat breakdown
     threats: list[ThreatDetail]
@@ -553,9 +570,9 @@ class GuardResponse(TypedDict, total=False):
     basis: Literal["secret", "organisation_rule", "detectors"] | Any
     # Processing time in milliseconds
     latency_ms: float
-    # Parts that reached us and were not read: they produced nothing to scan, or the scan budget was spent first. An `allow` with a non-empty `unscanned` is NOT 'this content is clean': it is 'the text was clean and these parts were never read'. Reasons: url_only (we do not fetch caller-supplied URLs, that would be an SSRF primitive), file_id_unsupported, encrypted, no_text_extracted (a scanned/rasterised document), too_large, undecodable, unsupported_type, extractor_unavailable, unsupported_block, unsupported_tool_call (a tool call in none of the shapes we can read, `index` is its position among the request's tool calls), over_size_budget (a message older than the newest ones that filled the scan budget: `index` is its position in `messages`; it was not read on this call, and was the newest turn of an earlier one).
+    # Parts that reached us and were not read: they produced nothing to scan, or the scan budget was spent first. An `allow` with a non-empty `unscanned` is NOT 'this content is clean', it is 'the text was clean and these parts were never read'. Reasons: url_only (we do not fetch caller-supplied URLs, that would be an SSRF primitive), file_id_unsupported, encrypted, no_text_extracted (a scanned/rasterised document), too_large, undecodable, unsupported_type, extractor_unavailable, unsupported_block, unsupported_tool_call (a tool call in none of the shapes we can read: `index` is its position among the request's tool calls), over_size_budget (a message older than the newest ones that filled the scan budget: `index` is its position in `messages`; it was not read on this call, and was the newest turn of an earlier one).
     unscanned: list[UnscannedAttachment]
-    # Unavailable checks: detectors this scan would have run but the deployment cannot, because their backing service (an ML inference endpoint, an LLM judge, a bundled model) is not configured. An `allow` with a non-empty `unavailable` is NOT 'every check passed': these detectors never looked. A detector that ran and found nothing is not listed, and neither is one the project's plan or guardrail settings leave out.
+    # Unavailable checks: detectors this scan would have run but the deployment cannot, because their backing service (an ML inference endpoint, an LLM judge, a bundled model) is not configured. An `allow` with a non-empty `unavailable` is NOT 'every check passed', these detectors never looked. A detector that ran and found nothing is not listed, and neither is one the project's plan or guardrail settings leave out.
     unavailable: list[UnavailableCheck]
     # How many Requests this call counted as toward the monthly allowance: 1 for a scan, whatever its length. 0 for a call that is not a scan: a findings-only report, a doctor probe or an Override.
     requests_counted: int
@@ -563,7 +580,7 @@ class GuardResponse(TypedDict, total=False):
     billed_tokens: int
     # The Detection level this call ran at: always `deep`, every detector including the LLM judges. Every plan runs the full engine and is billed at one list price, per call and per Billed token.
     detection_level: str
-    # What this account is entitled to, at the instant this scan was answered. Null when the engine cannot say: an account with no subscription row, an admin key that bypasses the counter, or a row it could not read. Null is 'unknown', NOT 'unentitled': a client that reads it as a limit has invented a refusal the engine never made.
+    # What this account is entitled to, at the instant this scan was answered. Null when the engine cannot say, an account with no subscription row, an admin key that bypasses the counter, or a row it could not read. Null is 'unknown', NOT 'unentitled': a client that reads it as a limit has invented a refusal the engine never made.
     entitlement: GuardEntitlement | Any
 
 
@@ -611,6 +628,39 @@ class HallucinationConfig(TypedDict, total=False):
     enabled: bool
     action: Literal["metadata", "flag", "block"]
     block_threshold: float
+
+
+# The single-action groups a key may hold: Access or No access.
+KeyAccessGroup = Literal["scan", "proxy", "red_team"]
+
+
+# The groups a key may hold at ``read`` or ``write``.
+KeyLevelGroup = Literal["usage", "policies", "shadow", "projects", "keys"]
+
+
+class KeyRequestCapErrorDetail(TypedDict, total=False):
+    """One key past its own monthly Request cap (#1111), not the account's quota. Deliberately not ``QuotaErrorDetail``: nothing about the Plan was exceeded, so it names no Plan and offers no upgrade. The account's other keys are still served."""
+
+    message: str
+    # 'quota_exceeded'
+    type: str
+    # 'api_key_request_cap_exceeded'
+    code: str
+    # The key's monthly Request cap
+    requests_limit: int
+    # When the cap resets: the first of next month, UTC
+    resets_at: str
+    retry_after: int
+    # The error catalogue's entry for `code` (cause and fix); present when the catalogue documents the code
+    doc_url: str | Any
+
+
+class KeyRequestCapErrorEnvelope(TypedDict):
+    error: KeyRequestCapErrorDetail
+
+
+# How far a grant reaches into a group. ``write`` includes ``read``.
+Level = Literal["none", "read", "write"]
 
 
 class LevelConfig(TypedDict, total=False):
@@ -1116,7 +1166,7 @@ class UnavailableCheck(TypedDict):
 class UnscannedAttachment(TypedDict):
     """One part of the request we could not read, and why."""
 
-    # Position within the list the reason names: the combined attachment list; the request's tool calls for `unsupported_tool_call` (`context.tool_calls` first, then each message's in order); `messages` for `over_size_budget`. -1 when the part has no position, which is every `unsupported_block`.
+    # Position within the list the reason names, the combined attachment list; the request's tool calls for `unsupported_tool_call` (`context.tool_calls` first, then each message's in order); `messages` for `over_size_budget`. -1 when the part has no position, which is every `unsupported_block`.
     index: int
     # Stable machine-readable code
     reason: str
