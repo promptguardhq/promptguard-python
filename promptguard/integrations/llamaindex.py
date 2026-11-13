@@ -26,7 +26,7 @@ from typing import Any
 
 from promptguard._resolve import resolve_credentials, validate_mode
 from promptguard._session import validate_session_id, with_session_id
-from promptguard.guard import GuardClient, GuardDecision, PromptGuardBlockedError
+from promptguard.guard import GuardClient, GuardDecision, PromptGuardBlockedError, event_ref
 
 logger = logging.getLogger("promptguard")
 
@@ -288,9 +288,9 @@ class PromptGuardCallbackHandler:
             if self._mode == "enforce":
                 raise PromptGuardBlockedError(decision)
             logger.warning(
-                "[monitor] PromptGuard would block: %s (event=%s, llamaindex_event=%s)",
+                "[monitor] PromptGuard would block: %s (%s, llamaindex_event=%s)",
                 decision.threat_type,
-                decision.event_id,
+                event_ref(decision),
                 event_id,
             )
 
@@ -391,18 +391,18 @@ class PromptGuardQueryGuard:
             if self._mode == "enforce":
                 raise PromptGuardBlockedError(decision)
             logger.warning(
-                "[monitor] PromptGuard would block query: %s (event=%s)",
+                "[monitor] PromptGuard would block query: %s (%s)",
                 decision.threat_type,
-                decision.event_id,
+                event_ref(decision),
             )
             return text
 
         # redact
         if self._mode != "enforce":
             logger.warning(
-                "[monitor] PromptGuard would redact query: %s (event=%s)",
+                "[monitor] PromptGuard would redact query: %s (%s)",
                 decision.threat_type,
-                decision.event_id,
+                event_ref(decision),
             )
             return text
 

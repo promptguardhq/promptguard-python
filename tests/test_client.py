@@ -424,6 +424,41 @@ class TestEnsureProxySuffix:
 # ── Quota error parsing ──────────────────────────────────────────────
 
 
+class TestProxyErrorLinksToItsEvent:
+    """promptguard#1148: the proxy client's error names the event's page, from
+    ``error.dashboard_url`` or the ``x-promptguard-dashboard-url`` header."""
+
+    PAGE = "https://app.promptguard.co/dashboard/projects/proj-1/interactions/evt-7"
+
+    def _raise(self, response):
+        c = _make_sync_client()
+        c._http = MagicMock()
+        c._http.request.return_value = response
+        with pytest.raises(PromptGuardError) as exc:
+            c._request("POST", "/test")
+        return exc.value
+
+    def _blocked(self, error=None, headers=None):
+        return httpx.Response(
+            status_code=400,
+            json={"error": {"message": "Blocked", "code": "policy_violation", **(error or {})}},
+            headers=headers,
+            request=httpx.Request("POST", "http://test"),
+        )
+
+    def test_reads_the_error_body(self):
+        err = self._raise(self._blocked({"dashboard_url": self.PAGE}))
+        assert err.dashboard_url == self.PAGE
+
+    def test_falls_back_to_the_header(self):
+        err = self._raise(self._blocked(headers={"x-promptguard-dashboard-url": self.PAGE}))
+        assert err.dashboard_url == self.PAGE
+
+    def test_none_when_the_proxy_names_no_page(self):
+        assert self._raise(self._blocked()).dashboard_url is None
+        assert self._raise(self._blocked({"dashboard_url": "ftp://x"})).dashboard_url is None
+
+
 class TestQuotaErrorParsing:
     @patch("time.sleep")
     def test_quota_error_includes_upgrade_url(self, mock_sleep):

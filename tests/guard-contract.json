@@ -1,6 +1,6 @@
 {
   "_description": "Shared contract tests for PromptGuard SDKs. Both Python and Node SDKs MUST pass all cases in this file. If you add a feature to one SDK, add a test case here first.",
-  "_version": "1.10.0",
+  "_version": "1.11.0",
 
   "guard_decision": {
     "description": "GuardDecision must parse these API response bodies correctly.",
@@ -158,6 +158,56 @@
           "redacted": false,
           "event_id": "evt-block-2",
           "confidence": 0.99,
+          "threat_type": "prompt_injection"
+        }
+      },
+      {
+        "name": "block_names_its_event_page",
+        "_comment": "v1.11.0: a decision that recorded an event carries `dashboard_url`, that event's page in the dashboard (the page the proxy names in `x-promptguard-dashboard-url`). An SDK exposes it on the decision and on its block error, so a developer can open the event the block recorded.",
+        "input": {
+          "decision": "block",
+          "event_id": "evt-block-3",
+          "dashboard_url": "https://app.promptguard.co/dashboard/projects/proj-1/interactions/evt-block-3",
+          "confidence": 0.97,
+          "threat_type": "prompt_injection",
+          "threats": [
+            {
+              "type": "prompt_injection",
+              "confidence": 0.97,
+              "details": "Detected instruction override"
+            }
+          ],
+          "latency_ms": 11.0
+        },
+        "expect": {
+          "allowed": false,
+          "blocked": true,
+          "redacted": false,
+          "event_id": "evt-block-3",
+          "dashboard_url": "https://app.promptguard.co/dashboard/projects/proj-1/interactions/evt-block-3",
+          "confidence": 0.97,
+          "threat_type": "prompt_injection"
+        }
+      },
+      {
+        "name": "decision_without_an_event_page",
+        "_comment": "v1.11.0: `dashboard_url` is absent or null when no event was recorded (a `pgshadow doctor` probe), and on every response from an Engine older than this field. The SDK reports it as null and does not fail.",
+        "input": {
+          "decision": "block",
+          "event_id": "evt-block-4",
+          "dashboard_url": null,
+          "confidence": 0.97,
+          "threat_type": "prompt_injection",
+          "threats": [],
+          "latency_ms": 9.0
+        },
+        "expect": {
+          "allowed": false,
+          "blocked": true,
+          "redacted": false,
+          "event_id": "evt-block-4",
+          "dashboard_url": null,
+          "confidence": 0.97,
           "threat_type": "prompt_injection"
         }
       },

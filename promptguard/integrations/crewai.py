@@ -33,7 +33,7 @@ from typing import Any, TypeVar
 
 from promptguard._resolve import resolve_credentials, validate_mode
 from promptguard._session import validate_session_id, with_session_id
-from promptguard.guard import GuardClient, GuardDecision, PromptGuardBlockedError
+from promptguard.guard import GuardClient, GuardDecision, PromptGuardBlockedError, event_ref
 
 # A CrewAI tool class; its ``_run`` is looked up dynamically, hence type[Any].
 _ToolT = TypeVar("_ToolT", bound=type[Any])
@@ -97,9 +97,9 @@ class PromptGuardGuardrail:
                 )
                 raise PromptGuardBlockedError(decision)
             logger.warning(
-                "[monitor] PromptGuard would redact crew input: %s (event=%s)",
+                "[monitor] PromptGuard would redact crew input: %s (%s)",
                 decision.threat_type,
-                decision.event_id,
+                event_ref(decision),
             )
 
         return inputs
@@ -152,9 +152,9 @@ class PromptGuardGuardrail:
             if self._mode == "enforce":
                 raise PromptGuardBlockedError(decision)
             logger.warning(
-                "[monitor] PromptGuard would block: %s (event=%s)",
+                "[monitor] PromptGuard would block: %s (%s)",
                 decision.threat_type,
-                decision.event_id,
+                event_ref(decision),
             )
 
         return decision
@@ -180,10 +180,10 @@ class PromptGuardGuardrail:
             )
             raise PromptGuardBlockedError(decision)
         logger.warning(
-            "[monitor] PromptGuard would redact crew output (%s): %s (event=%s)",
+            "[monitor] PromptGuard would redact crew output (%s): %s (%s)",
             hook,
             decision.threat_type,
-            decision.event_id,
+            event_ref(decision),
         )
 
     @staticmethod

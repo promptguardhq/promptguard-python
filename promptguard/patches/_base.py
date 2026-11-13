@@ -21,7 +21,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from promptguard.guard import GuardApiError, GuardDecision, PromptGuardBlockedError
+from promptguard.guard import GuardApiError, GuardDecision, PromptGuardBlockedError, event_ref
 
 logger = logging.getLogger("promptguard")
 
@@ -88,9 +88,9 @@ def _handle_pre_scan_decision(
         if get_mode() == "enforce":
             raise PromptGuardBlockedError(decision)
         logger.warning(
-            "[monitor] PromptGuard would block: %s (event=%s)",
+            "[monitor] PromptGuard would block: %s (%s)",
             decision.threat_type,
-            decision.event_id,
+            event_ref(decision),
         )
 
     if decision.redacted:
@@ -126,7 +126,7 @@ def _handle_pre_scan_decision(
                 raise PromptGuardBlockedError(decision)
             return new_kwargs
         logger.warning(
-            "[monitor] PromptGuard would redact%s: %s (event=%s)",
+            "[monitor] PromptGuard would redact%s: %s (%s)",
             (
                 f" (partial: {len(redacted_messages)} redacted messages "
                 f"for {len(guard_messages)} scanned)"
@@ -134,7 +134,7 @@ def _handle_pre_scan_decision(
                 else ""
             ),
             decision.threat_type,
-            decision.event_id,
+            event_ref(decision),
         )
 
     return kwargs
@@ -157,9 +157,9 @@ def _handle_response_decision(resp_decision: GuardDecision, get_mode: Callable[[
         if get_mode() == "enforce":
             raise PromptGuardBlockedError(resp_decision)
         logger.warning(
-            "[monitor] PromptGuard would block response: %s (event=%s)",
+            "[monitor] PromptGuard would block response: %s (%s)",
             resp_decision.threat_type,
-            resp_decision.event_id,
+            event_ref(resp_decision),
         )
         return
 
@@ -174,9 +174,9 @@ def _handle_response_decision(resp_decision: GuardDecision, get_mode: Callable[[
             )
             raise PromptGuardBlockedError(resp_decision)
         logger.warning(
-            "[monitor] PromptGuard would redact response: %s (event=%s)",
+            "[monitor] PromptGuard would redact response: %s (%s)",
             resp_decision.threat_type,
-            resp_decision.event_id,
+            event_ref(resp_decision),
         )
 
 

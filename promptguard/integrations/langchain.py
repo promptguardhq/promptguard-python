@@ -37,7 +37,7 @@ from promptguard._session import (
     validate_session_id,
     with_session_id,
 )
-from promptguard.guard import GuardClient, GuardDecision, PromptGuardBlockedError
+from promptguard.guard import GuardClient, GuardDecision, PromptGuardBlockedError, event_ref
 
 # Subclass the real base class whenever LangChain is installed. Before every
 # event langchain-core reads ``ignore_llm`` / ``ignore_chat_model`` /
@@ -365,9 +365,9 @@ class PromptGuardCallbackHandler(_BaseCallbackHandler):
             if self._mode == "enforce":
                 raise PromptGuardBlockedError(decision)
             logger.warning(
-                "[monitor] PromptGuard would block: %s (event=%s, run=%s)",
+                "[monitor] PromptGuard would block: %s (%s, run=%s)",
                 decision.threat_type,
-                decision.event_id,
+                event_ref(decision),
                 run_id,
             )
 
@@ -386,9 +386,9 @@ class PromptGuardCallbackHandler(_BaseCallbackHandler):
                 )
                 raise PromptGuardBlockedError(decision)
             logger.warning(
-                "[monitor] PromptGuard would redact content: %s (event=%s, run=%s)",
+                "[monitor] PromptGuard would redact content: %s (%s, run=%s)",
                 decision.threat_type,
-                decision.event_id,
+                event_ref(decision),
                 run_id,
             )
 
@@ -672,18 +672,18 @@ class PromptGuardRunnable:
             if self._mode == "enforce":
                 raise PromptGuardBlockedError(decision)
             logger.warning(
-                "[monitor] PromptGuard would block: %s (event=%s)",
+                "[monitor] PromptGuard would block: %s (%s)",
                 decision.threat_type,
-                decision.event_id,
+                event_ref(decision),
             )
             return value
 
         # redact
         if self._mode != "enforce":
             logger.warning(
-                "[monitor] PromptGuard would redact content: %s (event=%s)",
+                "[monitor] PromptGuard would redact content: %s (%s)",
                 decision.threat_type,
-                decision.event_id,
+                event_ref(decision),
             )
             return value
 

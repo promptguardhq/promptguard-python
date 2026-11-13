@@ -22,6 +22,7 @@ import httpx
 from promptguard._version import __version__
 from promptguard.config import Config
 from promptguard.generated.api_types import ScanResponse
+from promptguard.guard import event_page_url
 
 _SDK_LANG = "python"
 _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
@@ -45,6 +46,7 @@ class PromptGuardError(Exception):
         current_plan: str | None = None,
         requests_used: int | None = None,
         requests_limit: int | None = None,
+        dashboard_url: str | None = None,
     ):
         self.message = message
         self.code = code
@@ -54,6 +56,9 @@ class PromptGuardError(Exception):
         self.current_plan = current_plan
         self.requests_used = requests_used
         self.requests_limit = requests_limit
+        # The dashboard page of the event the proxy recorded for this request
+        # (a block names the event that blocked it), or None when it named none.
+        self.dashboard_url = dashboard_url
         super().__init__(f"{code}: {message}")
 
 
@@ -102,6 +107,10 @@ def _parse_error(response: httpx.Response) -> PromptGuardError:
         current_plan=err.get("current_plan"),
         requests_used=err.get("requests_used"),
         requests_limit=err.get("requests_limit"),
+        # The decided event's page: in the error body, and in a header on
+        # every proxy response that recorded an event.
+        dashboard_url=event_page_url(err.get("dashboard_url"))
+        or event_page_url(response.headers.get("x-promptguard-dashboard-url")),
     )
 
 
