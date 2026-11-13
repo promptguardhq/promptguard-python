@@ -44,7 +44,7 @@ import anyio.to_thread
 from promptguard._resolve import resolve_credentials, validate_mode
 from promptguard._session import as_session_id, with_session_id
 from promptguard.auto import _register_middleware
-from promptguard.guard import GuardApiError, GuardClient, GuardDecision
+from promptguard.guard import GuardApiError, GuardClient, GuardDecision, event_ref
 
 logger = logging.getLogger("promptguard")
 
@@ -676,11 +676,11 @@ class PromptGuardMiddleware:
             return True
         if self._mode == "monitor":
             logger.warning(
-                "[monitor] PromptGuard would %s %s: %s (event=%s)",
+                "[monitor] PromptGuard would %s %s: %s (%s)",
                 "block" if decision.blocked else "redact",
                 path,
                 decision.threat_type,
-                decision.event_id,
+                event_ref(decision),
             )
             return True
         await self._refuse(send, decision)

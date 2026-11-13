@@ -13,6 +13,41 @@ survives three releases is a changelog nobody is maintaining.
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-11-13
+
+**A block links to its event.** Block errors and every Guard decision carry the
+recorded event's page in the dashboard, so a developer can open the event that
+blocked a request from the error or the log line.
+
+### Added
+
+- **A block error links to its event: `PromptGuardBlockedError.dashboard_url`**
+  (promptguardhq/promptguard#1148). The Guard API now returns `dashboard_url`,
+  the recorded event's page in the dashboard (the page the proxy names in
+  `x-promptguard-dashboard-url`). The block error exposes it and names it at
+  the end of its message, and every `GuardDecision` carries it as
+  `dashboard_url`. It is `None` when no event was recorded (a `pgshadow doctor`
+  probe) and when the Guard API predates the field, so nothing breaks against
+  an older Engine. Only an absolute http(s) URL is passed on. Same as the Node
+  SDK's `dashboardUrl` in promptguard-sdk 2.6.0 on npm.
+- **The proxy client's error links to its event too:
+  `PromptGuardError.dashboard_url`**, read from the proxy's
+  `error.dashboard_url` or its `x-promptguard-dashboard-url` header, `None`
+  when the proxy names no page.
+- **Monitor mode's "would block" and "would redact" warnings name the event's
+  page** beside its id (`(event=<id>, <url>)`), for the shadow deployment
+  where nobody catches an error. This covers auto-instrumentation and the
+  LangChain, LlamaIndex, CrewAI and FastAPI integrations.
+
+### Changed
+
+- **The block error's message ends with the event's page** when the Guard API
+  returns one (`. Event: https://...`). Code that matches the message by exact
+  text should be checked.
+- **Cross-SDK `/guard` contract v1.11.0**, with the `dashboard_url` cases. It
+  is vendored from the platform repo's unreleased event-links branch, so the
+  version number may change when that branch merges beside another bump.
+
 ## [2.6.0] - 2026-11-10
 
 ### Added

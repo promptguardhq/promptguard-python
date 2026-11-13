@@ -58,6 +58,7 @@ class FakeGuardApi:
         self.scan_started: asyncio.Event | None = None
         self.sync_calls = 0
         self.status: int | None = None
+        self.dashboard_url: str | None = None
 
     async def handler(self, request: httpx.Request) -> httpx.Response:
         payload = json.loads(request.content)
@@ -92,6 +93,8 @@ class FakeGuardApi:
         body: dict[str, Any] = {"decision": decision, "event_id": f"evt-{len(self.calls)}"}
         if decision != "allow":
             body.update(threat_type="prompt_injection", confidence=0.97)
+        if self.dashboard_url is not None:
+            body["dashboard_url"] = self.dashboard_url
         if decision == "redact":
             body["redacted_messages"] = [{"role": "user", "content": "[REDACTED]"}]
         return httpx.Response(200, json=body)
@@ -214,13 +217,18 @@ class TestBenignAndBlocked:
 
     @pytest.mark.asyncio
     async def test_monitor_mode_logs_and_lets_a_block_through(self, guard_api, caplog):
+        page = "https://app.promptguard.co/dashboard/projects/proj-1/interactions/evt-1"
+        guard_api.dashboard_url = page
         app, seen = _make_app(mode="monitor")
         with caplog.at_level(logging.WARNING, logger="promptguard"):
             async with _client(app) as client:
                 resp = await client.post("/chat", content=_chat(INJECTION))
         assert resp.status_code == 200
         assert seen["calls"] == 1
-        assert any("would block" in r.getMessage() for r in caplog.records)
+        warnings = [r.getMessage() for r in caplog.records if "would block" in r.getMessage()]
+        assert warnings
+        # promptguard#1148: the warning names the event's dashboard page.
+        assert f"(event=evt-1, {page})" in warnings[0]
 
 
 class TestPathSelection:

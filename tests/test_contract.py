@@ -110,7 +110,7 @@ class TestContractProvenance:
 
 class TestGuardDecisionContract:
     def test_all_cases(self, contract):
-        from promptguard.guard import GuardApiError, GuardDecision
+        from promptguard.guard import GuardApiError, GuardDecision, PromptGuardBlockedError
 
         error_types = {"GuardApiError": GuardApiError}
 
@@ -129,6 +129,18 @@ class TestGuardDecisionContract:
             assert decision.event_id == expect["event_id"], f"{case['name']}: event_id"
             assert decision.confidence == expect["confidence"], f"{case['name']}: confidence"
             assert decision.threat_type == expect.get("threat_type"), f"{case['name']}: threat_type"
+
+            # v1.11.0: the recorded event's dashboard page, on the decision
+            # and on the block error a developer catches.
+            if "dashboard_url" in expect:
+                assert decision.dashboard_url == expect["dashboard_url"], (
+                    f"{case['name']}: dashboard_url"
+                )
+                if decision.blocked:
+                    error = PromptGuardBlockedError(decision)
+                    assert error.dashboard_url == expect["dashboard_url"], (
+                        f"{case['name']}: block error dashboard_url"
+                    )
 
             if "redacted_messages_count" in expect:
                 assert len(decision.redacted_messages) == expect["redacted_messages_count"]

@@ -707,11 +707,20 @@ try:
 except PromptGuardBlockedError as e:
     print(f"Blocked: {e.decision.threat_type}")
     print(f"Event ID: {e.decision.event_id}")
+    print(f"Event page: {e.dashboard_url}")  # None if the API returned no page
 ```
+
+`e.dashboard_url` is the blocked request's event page in the dashboard, and the
+error's message ends with it (`. Event: https://...`). Every `GuardDecision`
+carries it too, as `decision.dashboard_url`. It is `None` when no event was
+recorded (a `pgshadow doctor` probe) and when the Guard API predates the field.
+In monitor mode, the "would block" and "would redact" warnings name the page
+beside the event id.
 
 In **proxy mode**, the client raises `PromptGuardError`, which carries structured
 fields you can branch on, `.code`, `.status_code`, `.upgrade_url`,
-`.current_plan`, `.requests_used`, and `.requests_limit`:
+`.current_plan`, `.requests_used`, `.requests_limit`, and `.dashboard_url` (the
+recorded event's page, or `None` when the proxy names none):
 
 ```python
 from promptguard import PromptGuard, PromptGuardError

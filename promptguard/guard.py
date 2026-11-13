@@ -12,6 +12,7 @@ import threading
 import weakref
 from collections.abc import AsyncIterator
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -21,11 +22,40 @@ from promptguard._version import __version__
 logger = logging.getLogger("promptguard")
 
 
+def event_page_url(value: object) -> str | None:
+    """A recorded event's dashboard page as the API returned it, or ``None``
+    when it is absent, empty or not an absolute http(s) URL.
+
+    Only a web URL is passed on: the value ends up in error messages and logs,
+    and in whatever UI renders them as a link.
+    """
+    if not isinstance(value, str) or not value:
+        return None
+    # urlsplit silently drops tabs and newlines before parsing, but the raw
+    # value is what gets returned: a URL carrying whitespace or a control
+    # character could forge a log line, so it is refused outright.
+    if any(ch.isspace() or not ch.isprintable() for ch in value):
+        return None
+    try:
+        parts = urlsplit(value)
+    except ValueError:
+        return None
+    return value if parts.scheme in ("http", "https") and parts.netloc else None
+
+
+def event_ref(decision: "GuardDecision") -> str:
+    """How a log line names a decision's event: its id, and its dashboard page
+    when the Guard API returned one."""
+    page = f", {decision.dashboard_url}" if decision.dashboard_url else ""
+    return f"event={decision.event_id}{page}"
+
+
 class GuardDecision:
     """Result of a guard API call."""
 
     __slots__ = (
         "confidence",
+        "dashboard_url",
         "decision",
         "event_id",
         "latency_ms",
@@ -43,6 +73,10 @@ class GuardDecision:
             raise GuardApiError(f"Guard API returned an unknown decision: {decision!r}")
         self.decision: str = decision
         self.event_id: str = data.get("event_id", "")
+        # The recorded event's page in the dashboard, to open it from a log or
+        # an error. None when the Guard API recorded no event (a pgshadow
+        # doctor probe) or is an Engine too old to return the field.
+        self.dashboard_url: str | None = event_page_url(data.get("dashboard_url"))
         self.confidence: float = data.get("confidence", 0.0)
         self.threat_type: str | None = data.get("threat_type")
         self.redacted_messages: list[dict[str, str]] | None = data.get("redacted_messages")
@@ -63,14 +97,21 @@ class GuardDecision:
 
 
 class PromptGuardBlockedError(Exception):
-    """Raised when PromptGuard blocks a request in enforce mode."""
+    """Raised when PromptGuard blocks a request in enforce mode.
+
+    ``dashboard_url`` is the blocked request's event page in the dashboard, also
+    named at the end of the message; ``None`` when the Guard API returned none
+    (see ``GuardDecision.dashboard_url``).
+    """
 
     def __init__(self, decision: GuardDecision):
         self.decision = decision
+        self.dashboard_url: str | None = decision.dashboard_url
         threat = decision.threat_type or "policy_violation"
+        page = f". Event: {decision.dashboard_url}" if decision.dashboard_url else ""
         super().__init__(
             f"PromptGuard blocked this request: {threat} "
-            f"(confidence={decision.confidence:.2f}, event_id={decision.event_id})"
+            f"(confidence={decision.confidence:.2f}, event_id={decision.event_id}){page}"
         )
 
 
