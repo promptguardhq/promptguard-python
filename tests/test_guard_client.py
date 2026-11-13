@@ -130,6 +130,11 @@ class TestBlockErrorLinksToItsEvent:
             pytest.param(_block(dashboard_url=42), id="not a string"),
             pytest.param(_block(dashboard_url="javascript:alert(1)"), id="not a web URL"),
             pytest.param(_block(dashboard_url="/dashboard/projects/p/x"), id="relative"),
+            pytest.param(
+                _block(dashboard_url="https://app.promptguard.co/x\r\nforged log line"),
+                id="control characters",
+            ),
+            pytest.param(_block(dashboard_url="https://app.promptguard.co/a b"), id="whitespace"),
         ],
     )
     def test_block_error_works_without_a_usable_dashboard_url(self, body):

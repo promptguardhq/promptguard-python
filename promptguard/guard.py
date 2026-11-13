@@ -31,6 +31,11 @@ def event_page_url(value: object) -> str | None:
     """
     if not isinstance(value, str) or not value:
         return None
+    # urlsplit silently drops tabs and newlines before parsing, but the raw
+    # value is what gets returned: a URL carrying whitespace or a control
+    # character could forge a log line, so it is refused outright.
+    if any(ch.isspace() or not ch.isprintable() for ch in value):
+        return None
     try:
         parts = urlsplit(value)
     except ValueError:
