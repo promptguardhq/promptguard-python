@@ -296,6 +296,53 @@ class CreateToolRequest(TypedDict, total=False):
     justification: str | Any
 
 
+class DeviceCertificateRequest(TypedDict):
+    """A Device asks for its certificate. Unknown fields are refused, not ignored."""
+
+    # PEM PKCS#10 for an EC P-256 key, signed by that key with ECDSA-SHA256. Only its public key is used.
+    csr: str
+    # Where the private key lives: secure_enclave | tpm | software
+    key_protection: Literal["secure_enclave", "tpm", "software"]
+    # The OS account the key belongs to: the Windows SID or the macOS user's UUID
+    os_user: str
+    # Where the agent serves the returned revocation list: http://127.0.0.1:<port>/<name>.crl or http://[::1]:<port>/<name>.crl
+    crl_distribution_point: str
+
+
+class DeviceCertificateResponse(TypedDict):
+    """A Device certificate, the root it chains to and the list that says it is not revoked."""
+
+    # The Device certificate, PEM. The authority.
+    certificate: str
+    # Lowercase hex, no separators
+    serial: str
+    not_before: str
+    not_after: str
+    # Issue time plus half the validity
+    renew_after: str
+    # The certificate's permitted dNSName subtrees, as it carries them
+    permitted_dns_names: list[str]
+    root: DeviceCertificateRoot
+    revocation_list: DeviceCertificateRevocationList
+
+
+class DeviceCertificateRevocationList(TypedDict):
+    # The root's empty revocation list, base64 of the DER
+    crl: str
+    this_update: str
+    next_update: str
+    # The request's crl_distribution_point
+    distribution_point: str
+
+
+class DeviceCertificateRoot(TypedDict):
+    id: str
+    # The active Organisation root, PEM
+    certificate: str
+    # SHA-256 of the root's DER, lowercase hex, no separators
+    fingerprint_sha256: str
+
+
 class DeviceFinding(TypedDict):
     """One category the Device's masker caught, and how many times."""
 
@@ -541,7 +588,9 @@ class GuardRequest(TypedDict, total=False):
     images: list[str] | Any
     # A Shadow AI Device reporting an **Override**: the person sent a prompt the Device coached (a block that rested on one detector) anyway, with a reason. Sent with every message empty and nothing else to scan; any content is refused with 422. Recorded as an event with the decision `override`, its threat type and the reason, alerted on like a block and delivered to the SIEM, and not metered. The answer is `allow`: nothing was scanned.
     override: GuardOverride | Any
-    # What the calling Device's own masker caught before sending, as `{category, count}` pairs, never the values. `category` is one of the threat types this API returns (e.g. `api_key_leak`, `pii_leak`) and appears at most once; `count` is a positive integer. Any other key is rejected with 422. Recorded on this request's event, attributed to the Device, and shown in the fleet views; it does not change the decision. Optional; clients that omit it are unaffected.
+    # Count how many independent detectors agree on a `block`. With `true`, a confident finding is put to the rest of the detectors for a second opinion and `detectors_agreeing` counts them, at the cost of the ML layer's latency on every such block. With `false`, the scan stops at its first detection and asks no second opinion, so `detectors_agreeing` counts only the detectors that had found the threat when the scan decided. The decision, threat type and deciding rule are the same either way. Left out (or `null`), agreement is counted, and the response carries `Deprecation` and `Sunset` headers: from 2027-02-11 leaving it out means `false`. A Shadow AI Device's credential always counts.
+    agreement: bool | Any
+    # What the calling Device's own masker caught before sending, as `{category, count}` pairs, never the values. `category` is one of the threat types this API returns (e.g. `api_key_leak`, `pii_leak`) and appears at most once; `count` is a positive integer. Any other key is rejected with 422. Recorded on this request's event, attributed to the Device, and shown in the fleet views; it does not change the decision. A block an injection model decided on a request whose findings include a secret is reported as that secret (`threat_type` `secret_key_leak` or `api_key_leak`), with the model's verdict kept as a finding that did not decide. Optional; clients that omit it are unaffected.
     device_findings: list[DeviceFinding] | Any
 
 
@@ -552,12 +601,16 @@ class GuardResponse(TypedDict, total=False):
     decision: str
     # Unique event identifier for tracking
     event_id: str
+    # The dashboard page of the event this decision recorded, in its project: the page the proxy names in `x-promptguard-dashboard-url`. Null when no event was recorded (a `pgshadow doctor` probe is answered but not recorded), so there is no page to open.
+    dashboard_url: str | Any
     # Confidence score of the decision
     confidence: float
     # Aggregate decision-driving score (severity * confidence, clamped to [0, 1]) when a severity-carrying detector decided the verdict; null otherwise. Raw confidence stays in the `confidence` field.
     weighted_score: float | Any
     # Primary threat type detected
     threat_type: str | Any
+    # Why the decision was reached, in the words the event records: the reason the dashboard shows for it (unless the project keeps no content, when the event keeps only the threat type). Free text, and it may quote what was found. A client that tells a person why a request was stopped names this and `threat_type`, not a finding of its own, so the person and the dashboard give one explanation. Null on an `allow` that found nothing, and on any response from an Engine older than this field.
+    reason: str | Any
     # Redacted messages (only present when decision='redact'). Always the TEXT projection: a message sent as content blocks comes back as a string. Attachments are never rewritten, we do not re-encode a PDF with the secret removed, and returning one that looked redacted would be worse than returning none. A message listed in `unscanned` as `over_size_budget` was not read, so it comes back as its text, unredacted.
     redacted_messages: list[GuardMessage] | Any
     # Detailed threat breakdown
@@ -574,6 +627,8 @@ class GuardResponse(TypedDict, total=False):
     unscanned: list[UnscannedAttachment]
     # Unavailable checks: detectors this scan would have run but the deployment cannot, because their backing service (an ML inference endpoint, an LLM judge, a bundled model) is not configured. An `allow` with a non-empty `unavailable` is NOT 'every check passed', these detectors never looked. A detector that ran and found nothing is not listed, and neither is one the project's plan or guardrail settings leave out.
     unavailable: list[UnavailableCheck]
+    # Matches deliberately not redacted, one entry per match, in the order found; an empty list when there were none. The text of a skipped match is left as it was. Reported for the text the scan's PII pass read; empty when the Project's guardrails run none.
+    skipped: list[SkippedMatch]
     # How many Requests this call counted as toward the monthly allowance: 1 for a scan, whatever its length. 0 for a call that is not a scan: a findings-only report, a doctor probe or an Override.
     requests_counted: int
     # The tokens of content this call scanned, counted with the `cl100k_base` tokenizer whatever model the content is for: each scanned text is encoded on its own and the counts are added. What is scanned is the messages read with their tool calls, retrieved context and Tool definitions; for a Shadow AI Device, the Current turn, the Instructions and the Tool definitions not already checked, never an Earlier turn. Reported, not yet charged for. 0 for a call that is not a scan.
@@ -618,10 +673,6 @@ class GuardrailsResponse(TypedDict):
 
 class GuardrailsUpdateRequest(TypedDict):
     guardrails: GuardrailsConfig
-
-
-class HTTPValidationError(TypedDict, total=False):
-    detail: list[ValidationError]
 
 
 class HallucinationConfig(TypedDict, total=False):
@@ -916,10 +967,12 @@ class RedactRequest(TypedDict, total=False):
     pii_types: list[str] | Any
 
 
-class RedactResponse(TypedDict):
+class RedactResponse(TypedDict, total=False):
     original: str
     redacted: str
     piiFound: list[str]
+    # Matches deliberately not redacted, one entry per match, in the order found; an empty list when there were none. The text of a skipped match is left as it was.
+    skipped: list[SkippedMatch]
 
 
 class SampleSource(TypedDict, total=False):
@@ -993,6 +1046,15 @@ class SiemEventRecord(TypedDict, total=False):
     dashboard_url: str
     text: str
     threshold: dict[str, Any] | Any
+
+
+class SkippedMatch(TypedDict):
+    """One match a detector found and deliberately did not act on."""
+
+    # The detector type of the match, e.g. `email`.
+    type: str
+    # Why it was left in the text, a stable code. `reserved_domain`: an email at a domain reserved for documentation and testing by RFC 2606 and RFC 6761 (`example.com`, `example.net`, `example.org`, and any domain ending `.example`, `.test`, `.invalid` or `.localhost`), which cannot be a person's address. Test redaction with an address at a real-looking domain. A client that does not recognise a code must still treat the match as left in the text.
+    reason: str
 
 
 class SubscriptionInactiveErrorDetail(TypedDict, total=False):
@@ -1191,12 +1253,42 @@ class UsageStatsResponse(TypedDict, total=False):
     reset_date: str | Any
 
 
-class ValidationError(TypedDict, total=False):
-    loc: list[str | int]
-    msg: str
+class ValidationErrorDetail(TypedDict, total=False):
+    # The failed fields, one line
+    message: str
+    # 'invalid_request_error'
     type: str
+    # 'invalid_request'
+    code: str
+    # Each field that failed
+    details: list[ValidationErrorField]
+    # Equals the X-Request-ID header
+    error_id: str | Any
+    # The error catalogue's entry for `code` (cause and fix); present when the catalogue documents the code
+    doc_url: str | Any
+
+
+class ValidationErrorEnvelope(TypedDict):
+    """The developer API's 422 (`shared/infrastructure/framework_errors.py`)."""
+
+    error: ValidationErrorDetail
+    # The same list as `error.details`, in FastAPI's old shape. Removed on 2027-02-11; read `error.details`
+    detail: list[ValidationErrorField]
+
+
+class ValidationErrorField(TypedDict, total=False):
+    """One field that failed validation, as FastAPI reports it."""
+
+    # The field's path, e.g. ['body', 'messages']
+    loc: list[str | int]
+    # What is wrong with it
+    msg: str
+    # The kind of failure, e.g. 'missing'
+    type: str
+    # The value that was sent
     input: Any
-    ctx: dict[str, Any]
+    # The limit it broke, where there is one
+    ctx: dict[str, Any] | Any
 
 
 class WebhookAckResponse(TypedDict):
