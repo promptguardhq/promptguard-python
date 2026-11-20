@@ -123,12 +123,14 @@ Releases are triggered by creating a GitHub Release:
 
 1. Update `__version__` in `promptguard/_version.py`: `pyproject.toml` reads it
    from there (`[tool.hatch.version]`) and has no version of its own to edit
-2. Commit and push to `main`
-3. Create a GitHub Release
+2. Move the `Unreleased` entries in `CHANGELOG.md` into a dated section for
+   that version (`python scripts/check_changelog.py` checks it locally)
+3. Commit and push to `main`
+4. Create a GitHub Release
 
 The release workflow (`.github/workflows/release.yml`):
 
-1. Validates (ruff lint, ruff format, pytest, build)
+1. Validates (CHANGELOG has an entry for the version, ruff lint, ruff format, pytest, build)
 2. Checks if the version already exists on PyPI
 3. Publishes via PyPI Trusted Publishing (OIDC, no token needed)
 
