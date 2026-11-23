@@ -92,9 +92,17 @@ Coverage is configured in `pyproject.toml`:
 - Minimum threshold: **60%** (`fail_under = 60`)
 - Shows missing lines in terminal output
 
-### No live-API mode
+### Live tests (opt-in)
 
-The whole suite is mocked: no test makes a network call. Setting `PROMPTGUARD_API_KEY` or `PROMPTGUARD_BASE_URL` does not point any test at a real API; the tests that depend on them set or delete them with `monkeypatch`, so values in your shell cannot change the result. To try the SDK against a real backend, write a throwaway script.
+The default suite is mocked: no test in it makes a network call. Setting `PROMPTGUARD_API_KEY` or `PROMPTGUARD_BASE_URL` does not point any test at a real API; the tests that depend on them set or delete them with `monkeypatch`, so values in your shell cannot change the result.
+
+`tests/live/` is the exception. It drives the public client, `init()` and the Guard API against a real deployment (staging by default), is marked `live` and deselected by default (`addopts` in `pyproject.toml`), and skips when no key is set. Run it with a staging key; each test spends a few metered requests:
+
+```bash
+PROMPTGUARD_LIVE_API_KEY=pg_... bash scripts/check.sh --live
+```
+
+`PROMPTGUARD_LIVE_BASE_URL` changes the target.
 
 ## CI/CD
 
