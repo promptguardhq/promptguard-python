@@ -1,6 +1,6 @@
 {
   "_description": "Shared contract tests for PromptGuard SDKs. Both Python and Node SDKs MUST pass all cases in this file. If you add a feature to one SDK, add a test case here first.",
-  "_version": "1.11.0",
+  "_version": "1.12.0",
 
   "guard_decision": {
     "description": "GuardDecision must parse these API response bodies correctly.",
@@ -209,6 +209,27 @@
           "dashboard_url": null,
           "confidence": 0.97,
           "threat_type": "prompt_injection"
+        }
+      },
+      {
+        "name": "allow_with_a_skipped_reserved_domain_email",
+        "_comment": "v1.12.0 (#1135): `skipped` lists the matches deliberately left in the text, one `{type, reason}` per match, an empty list when there were none. The first reason is `reserved_domain`: an email at a domain RFC 2606 / RFC 6761 reserve for documentation and testing (`jane@example.com`), never redacted because it cannot be a person's. An SDK exposes `skipped` as given (empty when the field is absent, from an older server) and passes an unknown `reason` through rather than rejecting it. It never changes `decision`.",
+        "input": {
+          "decision": "allow",
+          "event_id": "evt-skip-1",
+          "confidence": 0.0,
+          "threats": [],
+          "skipped": [{ "type": "email", "reason": "reserved_domain" }],
+          "latency_ms": 2.4
+        },
+        "expect": {
+          "allowed": true,
+          "blocked": false,
+          "redacted": false,
+          "event_id": "evt-skip-1",
+          "confidence": 0.0,
+          "threat_type": null,
+          "skipped": [{ "type": "email", "reason": "reserved_domain" }]
         }
       },
       {
